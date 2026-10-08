@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Compliance exceptions{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Compliance exceptions</h1>
+<p class="text-muted mb-4" style="max-width: 70ch">
+  Files the compliance normaliser reads before diffing. <strong>Extra config</strong>
+  lines are injected into the rendered side for config the renderer does not yet
+  model; <strong>ignore &amp; redact rules</strong> drop platform-default noise or
+  mask secrets. Changes take effect on the next compliance run.
+</p>
+
+<div class="row g-4">
+  {% for key, sec in sections.items() %}
+  <div class="col-12 col-xl-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
+        <i class="bi {{ sec.icon }} fs-5 text-secondary"></i>
+        <span class="fw-medium">{{ sec.label }}</span>
+        <code class="text-muted small ms-auto">app/compliance/{{ key }}/</code>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small">{{ sec.description }}</p>
+        {{ render_section(key) | safe }}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="editor-panel"></div>
+{% endblock %}

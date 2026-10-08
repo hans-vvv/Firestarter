@@ -1,0 +1,6 @@
+# rr.yaml — the route reflectors (Role.name "rr").
+conditions:
+  status: active
+add:
+  - match: startswith
+    value: 'configure router "Base" bgp neighbor'

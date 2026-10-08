@@ -1,0 +1,38 @@
+# Addressing policy used by the TEST SUITE only.
+#
+# This is deliberately test-owned data, not a copy of any environment's policy:
+# the suite must never read the real app/services/service_handling/
+# addressing_definitions/ (that is per-environment data, gitignored, and only
+# present on a seeded machine). The autouse `addressing_policies` fixture in
+# tests/conftest.py points the resolver here.
+#
+# The pool names below must match the resource pools that SeedHandler creates
+# from tests/test.xlsx; the tenant label must match the devices that workbook
+# defines. If either changes, update this file.
+name: addressing_test_def
+
+selectors:
+  devices:
+    addressing:
+      match:
+        labels:
+          tenant: lab
+
+features:
+  addressing:
+    loopback0:
+      by_roles:
+        core: core_loopback0_pool_lab
+        rr: core_loopback0_pool_lab
+        pe: pe_loopback0_pool_lab
+    loopback1:
+      by_roles:
+        core: core_loopback1_pool_lab
+        rr: core_loopback1_pool_lab
+        pe: pe_loopback1_pool_lab
+    p2p:
+      by_roles:
+        core-core: p2p_pool_lab
+        core-rr: p2p_pool_lab
+        pe-pe: p2p_pool_lab
+        core-pe: p2p_pool_lab

@@ -1,0 +1,41 @@
+# BGP — one iBGP mesh via two route reflectors.
+service: bgp
+tenant: demo
+variant: default
+
+selectors:
+  devices:
+    bgp:
+      match:
+        labels:
+          tenant: demo
+        role:
+          include: ["pe", "rr"]
+
+    route_reflectors:
+      match:
+        labels:
+          tenant: demo
+        hostname:
+          include: ["rr1.Site1", "rr1.Site2"]
+
+features:
+  bgp:
+    asn: 65000
+    rr:
+      mode: explicit
+      rrc_peer_group_name: CORE_RR
+      rr_peer_group_name: CORE_RR_CLIENT
+
+interface_features: {}
+
+parameters:
+  bgp_afs:
+    role:
+      pe: ["evpn", "vpn-ipv4", "route-target"]
+      core: ["vpn-ipv4", "route-target"]
+      rr: ["evpn", "vpn-ipv4", "route-target"]
+    pg_suffix:
+      pe: evpn_vpn-ipv4
+      core: vpn-ipv4
+      rr: ["evpn", "vpn-ipv4", "route-target"]

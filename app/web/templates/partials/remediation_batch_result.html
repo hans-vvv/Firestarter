@@ -1,0 +1,37 @@
+{# Result of a batch "Remediate all eligible" (ADR 0004). `results` is a list of
+   DeployResult — one per eligible device. Each is rendered with the single-device
+   result partial, under a summary header. `results` may be empty. In this demo the
+   push itself is disabled, so every result reports nothing committed. #}
+{% if digest_mismatch %}
+<div class="alert alert-danger d-flex align-items-center">
+  <i class="bi bi-x-octagon me-2"></i>
+  <span>
+    What this page showed no longer matches what would be pushed, so nothing was sent.
+    Reload the compliance run to see the current candidates, then push again.
+  </span>
+</div>
+{% elif not results %}
+<div class="alert alert-secondary mb-0">
+  <i class="bi bi-info-circle me-2"></i>
+  No eligible devices to remediate — every candidate is blocked, or none remain in
+  the last compliance run.
+</div>
+{% else %}
+{% set ok_count = results | selectattr('ok') | list | length %}
+<div class="alert {{ 'alert-success' if ok_count == results | length else 'alert-warning' }} d-flex align-items-center">
+  <i class="bi {{ 'bi-check-circle' if ok_count == results | length else 'bi-exclamation-triangle' }} me-2"></i>
+  <span>
+    Remediated <strong>{{ ok_count }}</strong> of <strong>{{ results | length }}</strong>
+    eligible device(s).
+  </span>
+</div>
+
+{# One result block per device, newest concern first: failures on top so they are not
+   buried under successful pushes. #}
+{% for result in results | rejectattr('ok') %}
+<div class="mb-3">{% include 'partials/snippet_deploy_result.html' %}</div>
+{% endfor %}
+{% for result in results | selectattr('ok') %}
+<div class="mb-3">{% include 'partials/snippet_deploy_result.html' %}</div>
+{% endfor %}
+{% endif %}

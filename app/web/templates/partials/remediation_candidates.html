@@ -1,0 +1,166 @@
+{# Remediation candidates projected from the most recent compliance run (ADR 0004).
+   Every row is a device whose role spec matches part of its diff — config to add
+   (from `add` rules) and/or config to remove (from `delete` rules). Read-only for
+   everyone; the push button (inside the expanded detail) is admin-only and re-derives
+   the lines server-side — the browser posts only the hostname. #}
+{% if not candidates %}
+<div class="alert alert-secondary mb-0">
+  <i class="bi bi-info-circle me-2"></i>
+  No remediation candidates. Either no compliance run has happened in this process
+  yet, or no device's diff matched its role's add/delete rules.
+</div>
+{% else %}
+
+<p class="text-muted small mb-3">
+  Each device's role spec matches part of its diff — lines to add, commands to remove,
+  or both. Expand a row to review the exact lines; eligible devices can be pushed,
+  blocked devices show why.
+</p>
+
+{# ── Batch push — every eligible pe device at once (admin only) ────────────
+   Scoped to role `pe` (the pe devices), not a hostname prefix. Same
+   credentials modal as the per-device buttons: this form carries the
+   `remediate-form` class and the `.rem-username`/`.rem-password` hidden inputs, so
+   the existing delegated JS intercepts it, fills the creds, and clears them after
+   the request. The `remediate-pe-form` id additionally triggers an "Are you
+   sure?" confirm before the modal. It posts no hostnames — the server re-derives
+   the eligible pe set. #}
+{% if is_admin %}
+{% set pe_eligible = candidates | selectattr('eligible') | selectattr('role_name', 'equalto', 'pe') | list %}
+{% if pe_eligible %}
+<div class="card border-0 shadow-sm p-3 mb-3 bg-light">
+  {# Carries the digest of the whole batch plan previewed below; the route refuses
+     the batch unless its re-derived plan still matches, so what is pushed is
+     provably the set shown here. #}
+  <form id="remediate-pe-form" class="remediate-form"
+        data-count="{{ pe_eligible | length }}"
+        hx-post="{{ url_for('compliance.remediate_pe') }}"
+        hx-target="#remediate-pe-panel"
+        hx-swap="innerHTML"
+        hx-indicator="#remediate-pe-spinner">
+    <input type="hidden" name="digest" value="{{ pe_batch_digest }}">
+    <input type="hidden" name="username" class="rem-username">
+    <input type="hidden" name="password" class="rem-password">
+    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-4">
+      <i class="bi bi-upload me-2"></i>Remediate all pe devices ({{ pe_eligible | length }})
+    </button>
+    <span class="text-muted small ms-2">
+      Pushes every eligible pe device concurrently (commit confirmed). Blocked and non-pe devices are skipped.
+    </span>
+  </form>
+  <div id="remediate-pe-spinner" class="htmx-indicator text-muted mt-2">
+    <span class="spinner-border spinner-border-sm me-2"></span>Pushing to {{ pe_eligible | length }} pe device(s) — this can take a moment…
+  </div>
+  <div id="remediate-pe-panel" class="mt-3"></div>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table mb-0" id="remediation-table">
+      <thead>
+        <tr>
+          <th style="width:2rem"></th>
+          <th>Hostname</th>
+          <th>Role</th>
+          <th>Eligibility</th>
+          <th>Candidate lines</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in candidates %}
+
+        {# ── Summary row ── #}
+        <tr class="{% if loop.index % 2 == 1 %}row-stripe{% endif %}"
+            data-bs-toggle="collapse"
+            data-bs-target="#rem-detail-{{ loop.index }}"
+            style="cursor:pointer">
+          <td class="text-muted">
+            <i class="bi bi-chevron-right collapse-icon"></i>
+          </td>
+          <td class="fw-medium">{{ c.hostname }}</td>
+          <td><small class="text-muted">{{ c.role_name }}</small></td>
+          <td>
+            {% if c.eligible %}
+            <span class="badge badge-compliant">Eligible</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">Blocked</span>
+            {% endif %}
+          </td>
+          <td>
+            <small class="text-dark">{{ c.line_count }} line{{ 's' if c.line_count != 1 else '' }}</small>
+          </td>
+        </tr>
+
+        {# ── Detail row — the lines, and (admin + eligible) the push button ── #}
+        <tr class="collapse" id="rem-detail-{{ loop.index }}">
+          <td colspan="5" class="p-0">
+            <div class="p-3 bg-light border-top border-bottom">
+
+              {% if not c.eligible %}
+              <div class="alert alert-warning py-2 mb-3">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Blocked — {{ c.blocked_reasons | join('; ') }}
+              </div>
+              {% endif %}
+
+              {% if c.add_lines %}
+              <p class="fw-medium text-dark mb-1">
+                <i class="bi bi-plus-circle me-1"></i>
+                Add to device
+                <small class="text-muted fw-normal">(missing-intended lines matched by `add` rules)</small>
+              </p>
+              <pre class="config-block mb-0">{% for line in c.add_lines %}+ {{ line }}
+{% endfor %}</pre>
+              {% endif %}
+
+              {% if c.remove_lines %}
+              <p class="fw-medium text-dark mb-1 mt-3">
+                <i class="bi bi-trash me-1"></i>
+                Remove from device
+                <small class="text-muted fw-normal">(explicit commands from `delete` rules)</small>
+              </p>
+              <pre class="config-block mb-0">{% for line in c.remove_lines %}~ {{ line }}
+{% endfor %}</pre>
+              {% endif %}
+
+              {% if is_admin and c.eligible %}
+              {# One form per device. The hostname and the digest of the lines shown
+                 above are posted — never the config text — so the route re-derives and
+                 refuses the push unless it still matches, committing exactly what is
+                 shown here. Credentials fill from the modal and are cleared right after
+                 the request goes out. #}
+              <form id="remediate-form-{{ loop.index }}" class="remediate-form mt-3"
+                    hx-post="{{ url_for('compliance.remediate') }}"
+                    hx-target="#remediate-panel-{{ loop.index }}"
+                    hx-swap="innerHTML"
+                    hx-indicator="#remediate-spinner-{{ loop.index }}">
+                <input type="hidden" name="hostname" value="{{ c.hostname }}">
+                <input type="hidden" name="digest" value="{{ c.digest }}">
+                <input type="hidden" name="username" class="rem-username">
+                <input type="hidden" name="password" class="rem-password">
+                <button type="submit" class="btn btn-danger btn-sm rounded-pill px-4">
+                  <i class="bi bi-upload me-2"></i>Remediate {{ c.hostname }}
+                </button>
+                <span class="text-muted small ms-2">
+                  Commits these {{ c.line_count }} line(s) to the live device (commit confirmed).
+                </span>
+              </form>
+
+              <div id="remediate-spinner-{{ loop.index }}" class="htmx-indicator text-muted mt-2">
+                <span class="spinner-border spinner-border-sm me-2"></span>Pushing to {{ c.hostname }} — this can take a moment…
+              </div>
+              <div id="remediate-panel-{{ loop.index }}" class="mt-3"></div>
+              {% endif %}
+
+            </div>
+          </td>
+        </tr>
+
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}

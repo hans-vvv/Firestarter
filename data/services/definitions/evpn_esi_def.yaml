@@ -1,0 +1,22 @@
+# EVPN Ethernet Segments — one ESI per CE attachment (multi-homed on PE pairs).
+service: evpn_esi
+tenant: demo
+variant: default
+
+selectors:
+  devices:
+    evpn_esi:
+      match:
+        labels:
+          tenant: demo
+        role:
+          include: ["pe"]
+
+features: {}
+
+interface_features: {}
+
+parameters:
+  allocations:
+    evpn_esi:
+      pool: evpn_esi_pool_demo

@@ -1,0 +1,31 @@
+# IS-IS — single level-2 area for the whole demo network.
+service: isis
+tenant: demo
+variant: default
+
+selectors:
+  devices:
+    isis:
+      match:
+        labels:
+          tenant: demo
+        role:
+          include: ["core", "pe", "rr"]
+
+features:
+  isis:
+    area_address: "49.0001"
+    instance_id: 0
+    level_type: level-2-only
+    metric_style: wide
+    passive_interfaces:
+      - system
+    set_overload_bit_for_roles:
+      - rr   
+
+interface_features:
+  isis:
+    instance_id: 0
+    level_type: level-2-only   
+
+parameters: {}

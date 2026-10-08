@@ -1,0 +1,24 @@
+# Segment Routing (SR-ISIS) — node SIDs for the PE routers.
+service: sr
+tenant: demo
+variant: pe
+
+selectors:
+  devices:
+    sr:
+      match:
+        labels:
+          tenant: demo
+        role:
+          include: ["pe"]
+
+features:
+  sr:
+    enabled: true
+
+interface_features:
+  sr: {}
+
+parameters:
+  resource_pool_name:
+    sr_pe_pool_demo

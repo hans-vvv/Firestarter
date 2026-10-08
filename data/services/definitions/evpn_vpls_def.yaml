@@ -1,0 +1,38 @@
+# EVPN-VPLS services on the PE routers.
+#
+#   CUSTOMER-A-200  routed VPLS on VLAN 20 — the access leg of VPRN CUSTOMER-A-20
+#   CUSTOMER-B-300  plain L2 VPLS on VLAN 30 — switches at all sites share one
+#                   broadcast domain over EVPN
+service: evpn_vpls
+tenant: demo
+variant: default
+
+selectors:
+  devices:
+    evpn_vpls:
+      match:
+        labels:
+          tenant: demo
+        role:
+          include: ["pe"]
+
+parameters:
+  bgp_route_target_prefix: 65000
+  vplss:
+    - name: CUSTOMER-A-200
+      service_id_pool:
+        name: evpn_vpls_pool_demo
+      s_vlan: 20
+      vpls_name: CUSTOMER-A-200      
+      routed_vpls: true
+
+    - name: CUSTOMER-B-300
+      service_id_pool:
+        name: evpn_vpls_pool_demo
+      s_vlan: 30
+      vpls_name: CUSTOMER-B-300      
+      routed_vpls: false
+
+features: {}
+
+interface_features: {}

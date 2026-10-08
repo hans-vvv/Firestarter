@@ -1,0 +1,37 @@
+# What NOT to send to the build (the "build context").
+
+# Version control, editors, local environments
+.git
+.claude
+.vscode
+.idea
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+
+# Environment data (ADR 0001): never inside an image
+app.db
+manifest.json
+app/tiger.xlsx
+app/backups
+app/services/services_definitions/*_def.yaml
+app/services/service_handling/addressing_definitions/*.yaml
+app/compliance/extra/*.cfg
+app/compliance/ignore/*.yaml
+app/compliance/remediation/*.yaml
+app/compliance/reports
+app/automation/generated/*
+app/logging/logs
+
+# Secrets, just in case
+secrets.json
+*.pem
+*.key
+*.env
+
+# Not needed at runtime
+docs
+old
+artifacts
+state_snapshots

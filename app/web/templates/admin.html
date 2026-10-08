@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Admin — Users</h1>
+
+<div class="row g-4">
+  <!-- Create user -->
+  <div class="col-12 col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 mb-3">Create user</h2>
+        <form hx-post="{{ url_for('admin.create') }}"
+              hx-target="#user-table" hx-swap="outerHTML"
+              hx-on::after-request="if(event.detail.successful) this.reset()">
+          <div class="mb-3">
+            <label for="new-username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="new-username" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label for="new-role" class="form-label">Role</label>
+            <select class="form-select" id="new-role" name="role" required>
+              {% for r in roles %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="new-password" class="form-label">Temporary password</label>
+            <input type="text" class="form-control" id="new-password" name="password" required>
+            <div class="form-text">The user must change this on first login.</div>
+          </div>
+          <button type="submit" class="btn btn-firestarter rounded-pill w-100">Create user</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Production device password -->
+  <div class="col-12 col-lg-4">
+    {% include "partials/device_password_card.html" %}
+  </div>
+
+  <!-- User roster -->
+  <div class="col-12 col-lg-8">
+    {% include "partials/user_table.html" %}
+  </div>
+</div>
+{% endblock %}

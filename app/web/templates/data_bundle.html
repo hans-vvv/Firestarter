@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Data bundle{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-9">
+
+    <h1 class="h3 mb-2">Data bundle</h1>
+    <p class="text-muted">
+      Download all environment-specific data as a single ZIP — the database, input
+      workbook, production YAML definitions and compliance reference/ignore files.
+      Code and lab/testbed fixtures travel via git, not here.
+    </p>
+    <p class="mb-4">
+      This server's environment:
+      <span class="badge text-bg-secondary">{{ preview.environment }}</span>
+    </p>
+
+    <div class="card mb-4">
+      <div class="card-header fw-medium">Download bundle</div>
+      <div class="card-body">
+        <p class="text-muted">
+          Builds a ZIP of the {{ preview.count }} data file(s) currently on this
+          server, plus a manifest (checksums, environment, schema revision).
+        </p>
+        {% if preview.files %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm table-bordered mb-0">
+            <thead>
+              <tr><th>File</th><th class="text-end">Size (KB)</th></tr>
+            </thead>
+            <tbody>
+              {% for f in preview.files %}
+              <tr><td><code>{{ f.path }}</code></td><td class="text-end">{{ f.size_kb }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <a href="{{ url_for('data_bundle.download') }}" class="btn btn-primary">
+          <i class="bi bi-download me-1"></i> Download bundle
+        </a>
+        {% else %}
+        <p class="text-muted mb-0">No production data files are present on this server.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header fw-medium">Loading a bundle</div>
+      <div class="card-body">
+        <p class="text-muted mb-0">
+          A bundle is loaded on the filesystem, not through this page: unzip it at
+          the repository root and every file lands at the path recorded in its
+          manifest. This is typically done when seeding a development worktree with
+          production data.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

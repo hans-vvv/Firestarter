@@ -1,0 +1,154 @@
+
+{% for iface in interfaces if iface.render_type == "lag_member" %}
+
+/configure port {{ iface.name }} admin-state enable
+{% if iface.description %}
+/configure port {{ iface.name }} description "{{ iface.description }}"
+{% endif %}
+/configure port {{ iface.name }} ethernet mtu 9212
+{% if iface.if_role == "UNI" %}
+/configure port {{ iface.name }} ethernet mode access
+/configure port {{ iface.name }} ethernet encap-type dot1q
+{% endif %}
+{% endfor %}
+
+{% for iface in interfaces if iface.render_type == "lag_parent" %}
+{% if not iface.is_synthetic|default(false) %}
+/configure lag "{{ iface.name }}" admin-state enable
+/configure lag "{{ iface.name }}" lacp mode active
+/configure lag "{{ iface.name }}" lacp administrative-key {{ iface.name.split("lag-")[1] }}
+{% if iface.description %}
+/configure lag "{{ iface.name }}" description "{{ iface.description }}"
+{% endif %}
+{% if iface.if_role == "UNI" %}
+/configure lag "{{ iface.name }}" mode access
+/configure lag "{{ iface.name }}" encap-type dot1q
+{% set lag_num = iface.name.split('-')[1] | int %}
+{% set system_id = '00:00:00:00:00:%02d' | format(lag_num) %}
+/configure lag "{{ iface.name }}" lacp system-id {{ system_id }}
+{% endif %}
+
+{% for member in iface.members %}
+/configure lag "{{ iface.name }}" port {{ member }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% set loop = namespace(system_ip=None) %}
+{% for iface in interfaces if iface.render_type == "skip" %}
+{% if iface.name == "Loopback0" %}
+{% for ip_address in iface.iface_ip_addresses %}
+{% set loop.system_ip = ip_address %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% set system_ip = loop.system_ip.split('/')[0] if loop.system_ip else None %}
+
+{# The ASN comes from the bgp service definition (features.bgp.asn); every
+   bgp variant carries it, so take it from the first one. #}
+{% set ns_asn = namespace(asn=None) %}
+{% if bgp is defined %}
+{% for _vn, _v in bgp.variant.items() %}
+{% if ns_asn.asn is none and _v.asn is defined %}{% set ns_asn.asn = _v.asn %}{% endif %}
+{% endfor %}
+{% endif %}
+{% if ns_asn.asn is not none %}
+/configure router "Base" autonomous-system {{ ns_asn.asn }}
+{% endif %}
+/configure router "Base" router-id {{ system_ip }}
+
+/configure router "Base" interface "system" ipv4 primary address {{ system_ip }}
+/configure router "Base" interface "system" ipv4 primary prefix-length 32
+
+{% for iface in interfaces if iface.render_type == "lag_parent" %}
+{% if not iface.is_synthetic|default(false) and iface.if_role == "NNI" %}
+/configure router "Base" interface "{{ iface.name }}" admin-state enable
+/configure router "Base" interface "{{ iface.name }}" port {{ iface.name }}
+
+/configure router "Base" interface "{{ iface.name }}" ipv4 primary address {{ iface.iface_ip_addresses[0].split("/")[0] }}
+/configure router "Base" interface "{{ iface.name }}" ipv4 primary prefix-length 31
+/configure router "Base" interface "{{ iface.name }}" description "{{ iface.description }}"
+{% endif %}
+{% endfor %}
+
+
+{% if isis is defined and isis.instances is defined and "0" in isis.instances %}
+{% set i0 = isis.instances["0"] %}
+{% set inst_id = i0.instance_id | default(0) %}
+
+/configure router "Base" isis {{ inst_id }} admin-state enable
+/configure router "Base" isis {{ inst_id }} area-address [{{ i0.area_address }}]
+
+/configure router "Base" isis {{ inst_id }} segment-routing admin-state enable
+/configure router "Base" isis {{ inst_id }} segment-routing prefix-sid-range global
+
+{# Overload bit — set on devices whose role is in set_overload_bit_for_roles #}
+{% if i0.set_overload_bit | default(false) %}
+/configure router "Base" isis {{ inst_id }} overload
+{% endif %}
+
+{# Passive interfaces (system, etc.) #}
+{% for ifname in (i0.passive_interfaces | default([])) %}
+/configure router "Base" isis {{ inst_id }} interface "{{ ifname }}" passive true
+{% endfor %}
+
+{# Active interfaces #}
+{% for iface in (i0.interfaces | default([])) | sort(attribute="iface_name") %}
+/configure router "Base" isis {{ inst_id }} interface "{{ iface.iface_name }}" interface-type point-to-point
+/configure router "Base" isis {{ inst_id }} interface "{{ iface.iface_name }}" level-capability 2
+/configure router "Base" isis {{ inst_id }} interface "{{ iface.iface_name }}" level 2 metric {{ iface.metric | default(1000) }}
+
+{% endfor %}
+
+{# Wide metrics only (if metric_style == wide) #}
+{% if i0.metric_style | default("") == "wide" %}
+/configure router "Base" isis {{ inst_id }} level 2 wide-metrics-only true
+{% endif %}
+
+{% endif %}
+
+{% if sr is defined %}
+/configure router "Base" segment-routing sr-mpls prefix-sids "system" node-sid true
+/configure router "Base" segment-routing sr-mpls prefix-sids "system" ipv4-sid label {{ sr.node_sid }}
+{% endif %}
+
+{% if bgp is defined %}
+/configure router "Base" bgp admin-state enable
+
+
+{# ---- CLUSTER (global, only once, if any variant is RR) ---- #}
+{% set ns = namespace(has_rr=false) %}
+{% for _vn, _v in bgp.variant.items() %}
+{% if _v.topology_role == "rr" %}
+{% set ns.has_rr = true %}
+{% endif %}
+{% endfor %}
+{% if ns.has_rr %}
+/configure router "Base" bgp cluster cluster-id 192.0.2.1
+{% endif %}
+
+{% for variant_name, variant in bgp.variant | dictsort %}
+
+{# ---- GROUPS ---- #}
+{% for pg_name, pg in variant.peer_groups | dictsort %}
+/configure router "Base" bgp group "{{ pg_name }}" admin-state enable
+/configure router "Base" bgp group "{{ pg_name }}" next-hop-self true
+/configure router "Base" bgp group "{{ pg_name }}" type internal/
+/configure router "Base" bgp group "{{ pg_name }}" local-address {{ system_ip }}
+
+{% for af in pg.afs | sort %}
+/configure router "Base" bgp group "{{ pg_name }}" family {{ af }} true
+{% endfor %}
+
+{% endfor %}
+
+{% for n in variant.neighbors | sort(attribute='neighbor_ip') %}
+/configure router "Base" bgp neighbor "{{ n.neighbor_ip }}" admin-state enable
+/configure router "Base" bgp neighbor "{{ n.neighbor_ip }}" group "{{ n.peer_group }}"
+/configure router "Base" bgp neighbor "{{ n.neighbor_ip }}" description "{{ n.neighbor_hostname }}"
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+

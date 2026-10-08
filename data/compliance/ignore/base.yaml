@@ -1,0 +1,70 @@
+# base.yaml — ignore rules applied to every device.
+#
+# SR OS default statements a device always emits but the renderer never produces
+# (implicit platform defaults). Left in the diff they would be permanent
+# false-positive drift on every device.
+#
+# Rule types (all use the `value` key, matched AFTER normalisation — leading slash
+# stripped, braces unwrapped, whitespace trimmed):
+#   exact      : the whole normalised line equals `value`
+#   startswith : the line starts with `value` (suppresses a whole subtree)
+#   regex      : Python re.search on the line — use sparingly
+
+ignore:
+
+  # Log defaults
+  - match: startswith
+    value: "configure log filter \"1001\""
+  - match: startswith
+    value: "configure log log-id \"99\""
+  - match: startswith
+    value: "configure log log-id \"100\""
+
+  # QoS policy defaults — emitted even when they carry no operator content
+  - match: exact
+    value: "configure qos vlan-qos-policy \"default\""
+  - match: exact
+    value: "configure qos queue-mgmt-policy \"default\""
+  - match: exact
+    value: "configure qos egress-remark-policy \"default\""
+
+  # System security — default AAA profiles and SSH cipher/MAC lists are platform
+  # defaults the renderer does not manage
+  - match: startswith
+    value: "configure system security aaa local-profiles profile \"default\""
+  - match: startswith
+    value: "configure system security aaa local-profiles profile \"administrative\""
+  - match: startswith
+    value: "configure system security ssh server-cipher-list-v2"
+  - match: startswith
+    value: "configure system security ssh client-cipher-list-v2"
+  - match: startswith
+    value: "configure system security ssh server-mac-list-v2"
+  - match: startswith
+    value: "configure system security ssh client-mac-list-v2"
+
+  # SNMP — engine-id and user keys are generated per device
+  - match: startswith
+    value: "configure system management-interface snmp"
+  - match: startswith
+    value: "configure system security snmp"
+
+  # Bare connector lines (`configure port 1/1/c1` with no leaf) are placeholders
+  - match: regex
+    value: "^configure port \\d+/\\d+/c\\d+$"
+
+# Redact rules — the structure of the line is compared, the secret is replaced by
+# <redacted> on both sides before diffing.
+redact:
+  - match: regex
+    value: "^(configure system security keychains .* authentication-key) .*$"
+    replace: "\\1 <redacted>"
+  - match: regex
+    value: "^(configure system security user-params .* password) .*$"
+    replace: "\\1 <redacted>"
+  - match: regex
+    value: "^(configure system security user-params .* authentication-key) .*$"
+    replace: "\\1 <redacted>"
+  - match: regex
+    value: "^(configure system security user-params .* privacy-key) .*$"
+    replace: "\\1 <redacted>"

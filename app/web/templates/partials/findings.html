@@ -1,0 +1,121 @@
+<!-- Summary badges -->
+<div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+  <span class="text-muted">
+    <i class="bi bi-router me-1"></i>{{ report.checked_hostnames | length }} devices checked
+  </span>
+  <span class="text-muted">
+    <i class="bi bi-database me-1"></i>{{ report.lsps_parsed }} LSPs parsed
+  </span>
+  <span class="badge badge-compliant fs-6 px-3 py-2">
+    {{ report.pass_count }} OK
+  </span>
+  {% if report.fail_count %}
+  <span class="badge badge-noncompliant fs-6 px-3 py-2">
+    {{ report.fail_count }} with findings
+  </span>
+  {% endif %}
+</div>
+
+{% if not report.checked_hostnames %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  No devices found in the IS-IS output. Check the pasted text.
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th style="width:2rem"></th>
+          <th>Hostname</th>
+          <th>Status</th>
+          <th>Findings</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        {% for hostname in report.checked_hostnames | sort %}
+        {% set host_findings = findings_by_host.get(hostname, []) %}
+        {% set has_findings  = host_findings | length > 0 %}
+
+        {# ── Per-device summary row ── #}
+        <tr class="{% if loop.index % 2 == 1 %}row-stripe{% endif %}"
+            data-bs-toggle="collapse"
+            data-bs-target="#state-detail-{{ loop.index }}"
+            style="cursor:pointer">
+
+          <td class="text-muted">
+            <i class="bi bi-chevron-right collapse-icon"></i>
+          </td>
+
+          <td class="fw-medium">{{ hostname }}</td>
+
+          <td>
+            {% if not has_findings %}
+            <span class="badge badge-compliant">OK</span>
+            {% else %}
+              {% if host_findings | selectattr('check', 'equalto', 'MISSING_LSP') | list %}
+              <span class="badge badge-noncompliant">DOWN</span>
+              {% else %}
+              <span class="badge badge-noncompliant">DEGRADED</span>
+              {% endif %}
+            {% endif %}
+          </td>
+
+          <td>
+            {% if has_findings %}
+            <small class="text-dark">{{ host_findings | length }} finding(s)</small>
+            {% else %}
+            <small class="text-muted">—</small>
+            {% endif %}
+          </td>
+
+        </tr>
+
+        {# ── Per-device detail row (collapsed) ── #}
+        <tr class="collapse" id="state-detail-{{ loop.index }}">
+          <td colspan="4" class="p-0">
+            <div class="p-3 bg-light border-top border-bottom">
+
+              {% if not has_findings %}
+              <p class="text-success mb-0">
+                <i class="bi bi-check-circle me-1"></i>
+                Operational state matches topology expectations.
+              </p>
+
+              {% else %}
+              <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Check</th>
+                    <th>Expected</th>
+                    <th>Observed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for finding in host_findings | sort(attribute='severity.value') %}
+                  <tr>
+                    <td><span class="severity-{{ finding.severity.value }}">{{ finding.severity.value }}</span></td>
+                    <td><code class="small">{{ finding.check }}</code></td>
+                    <td><small class="text-muted">{{ finding.expected }}</small></td>
+                    <td><small class="text-dark">{{ finding.observed }}</small></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% endif %}
+
+            </div>
+          </td>
+        </tr>
+
+        {% endfor %}
+
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}

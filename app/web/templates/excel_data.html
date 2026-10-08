@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Excel data{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+
+    <h1 class="h3 mb-4">Excel data</h1>
+
+    <!-- Current workbook + download -->
+    <div class="card mb-4">
+      <div class="card-header fw-medium">Current input workbook</div>
+      <div class="card-body">
+        {% if file_info %}
+        <dl class="row mb-3">
+          <dt class="col-sm-3">File</dt>
+          <dd class="col-sm-9"><code>{{ file_info.name }}</code></dd>
+          <dt class="col-sm-3">Size</dt>
+          <dd class="col-sm-9">{{ file_info.size_kb }} KB</dd>
+          <dt class="col-sm-3">Last modified</dt>
+          <dd class="col-sm-9">{{ file_info.modified }}</dd>
+        </dl>
+        <a href="{{ url_for('excel_data.download') }}" class="btn btn-primary">
+          <i class="bi bi-download me-1"></i> Download workbook
+        </a>
+        {% else %}
+        <p class="text-muted mb-0">No input workbook is present on the server.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Upload (rw/admin only) -->
+    <div class="card">
+      <div class="card-header fw-medium">Replace input workbook</div>
+      <div class="card-body">
+        {% if can_write %}
+        <p class="text-muted">
+          The uploaded workbook is validated before it replaces the current file.
+          A workbook that fails validation is rejected and the current file is
+          left untouched. Uploading does not run the ingestion pipeline.
+        </p>
+
+        {% if errors or crash_traceback %}
+        {# The upload failed. Give the operator an inline summary plus a button to
+           the modal, which auto-opens on load (below) so the failure is never
+           silently missed after the full-page reload. #}
+        <div class="alert alert-danger d-flex justify-content-between align-items-center">
+          <span>
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            {% if crash_traceback %}
+            Validation crashed — the current workbook was not changed.
+            {% else %}
+            Validation failed ({{ errors|length }} error{{ 's' if errors|length != 1 }}) —
+            the current workbook was not changed.
+            {% endif %}
+          </span>
+          <button type="button" class="btn btn-sm btn-outline-danger"
+                  data-bs-toggle="modal" data-bs-target="#excelErrorModal">
+            Show details
+          </button>
+        </div>
+
+        <div class="modal fade" id="excelErrorModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">
+                  {% if crash_traceback %}
+                  Workbook validation error — full traceback
+                  {% else %}
+                  Workbook validation failed — {{ errors|length }} error{{ 's' if errors|length != 1 }}
+                  {% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                {% if crash_traceback %}
+                <p class="text-muted">
+                  A validation check raised an unexpected error while reading the
+                  workbook. The current file was left untouched.
+                </p>
+                <pre class="mb-0 small" style="white-space: pre-wrap;">{{ crash_traceback }}</pre>
+                {% else %}
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered mb-0">
+                    <thead>
+                      <tr><th>Sheet</th><th>Row</th><th>Column</th><th>Message</th></tr>
+                    </thead>
+                    <tbody>
+                      {% for e in errors %}
+                      <tr>
+                        <td>{{ e.sheet }}</td>
+                        <td>{{ e.row if e.row is not none else "—" }}</td>
+                        <td>{{ e.column if e.column is not none else "—" }}</td>
+                        <td>{{ e.message }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <script>
+          // Auto-open the error modal once, right after a failed upload, so the
+          // operator sees why the workbook was rejected without hunting for it.
+          (function () {
+            var el = document.getElementById('excelErrorModal');
+            if (el && window.bootstrap) {
+              bootstrap.Modal.getOrCreateInstance(el).show();
+            }
+          })();
+        </script>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('excel_data.upload') }}"
+              enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+          <input type="file" name="file" accept=".xlsx" required
+                 class="form-control" style="max-width: 24rem;">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-upload me-1"></i> Validate &amp; upload
+          </button>
+        </form>
+        {% else %}
+        <p class="text-muted mb-0">
+          Uploading a replacement workbook requires the <strong>rw</strong> or
+          <strong>admin</strong> role.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

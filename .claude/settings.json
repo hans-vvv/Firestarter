@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+
+      "Bash(rm -rf *)",
+      "Bash(rm -rF *)",
+      "Bash(rm -fr *)",
+      "Bash(rm -fR *)",
+
+      "Bash(rm *.venv*)",
+      "Bash(rm *.git/*)"
+    ]
+  }
+}

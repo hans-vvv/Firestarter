@@ -1,0 +1,17 @@
+<div class="d-flex align-items-center gap-3 flex-wrap">
+  <span class="text-success fw-medium">
+    <i class="bi bi-check-circle-fill me-1"></i>
+    {{ count }} config{{ 's' if count != 1 else '' }} generated
+  </span>
+
+  <a href="{{ url_for('devices.download') }}"
+     class="btn btn-firestarter rounded-pill px-4">
+    <i class="bi bi-download me-2"></i>Download ZIP
+  </a>
+</div>
+
+<ul class="list-unstyled mt-3 mb-0 text-muted small">
+  {% for hostname in hostnames %}
+  <li><i class="bi bi-file-code me-1"></i>{{ hostname }}.cfg</li>
+  {% endfor %}
+</ul>

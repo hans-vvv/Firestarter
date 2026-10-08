@@ -1,0 +1,53 @@
+{% set ns = namespace(system_ip=None) %}
+{% for iface in interfaces if iface.render_type == "skip" and iface.name == "Loopback0" %}
+{% for ip_address in iface.iface_ip_addresses %}
+{% set ns.system_ip = ip_address.split("/")[0] %}
+{% endfor %}
+{% endfor %}
+{% set system_ip = ns.system_ip %}
+
+{% if vprn is defined %}
+{%- for variant_name, vprns in vprn.variant.items() %}
+{%- for vprn_name, vprn in vprns.items() %}
+
+/configure service vprn "{{ vprn_name }}" admin-state enable
+/configure service vprn "{{ vprn_name }}" service-id {{ vprn.service_id }}
+/configure service vprn "{{ vprn_name }}" customer "1"
+/configure service vprn "{{ vprn_name }}" bgp-ipvpn mpls admin-state enable
+/configure service vprn "{{ vprn_name }}" bgp-ipvpn mpls route-distinguisher "{{ system_ip }}:{{ vprn.service_id }}"
+
+{% if not vprn.use_policy %}
+{% for rt in vprn.rt_import %}
+/configure service vprn "{{ vprn_name }}" bgp-ipvpn mpls vrf-target import-community "target:{{ rt }}"
+{% endfor %}
+{% for rt in vprn.rt_export %}
+/configure service vprn "{{ vprn_name }}" bgp-ipvpn mpls vrf-target export-community "target:{{ rt }}"
+{% endfor %}
+{% else %}
+{% for rt in vprn.rt_import %}
+{% set entry = loop.index * 10 %}
+/configure policy-options policy-statement "VPRN-IMPORT-{{ vprn_name }}" entry {{ entry }} from community name "{{ vprn.import_target_names[rt] }}"
+/configure policy-options policy-statement "VPRN-IMPORT-{{ vprn_name }}" entry {{ entry }} from protocol name [bgp-vpn]
+/configure policy-options policy-statement "VPRN-IMPORT-{{ vprn_name }}" entry {{ entry }} action action-type accept
+{% endfor %}
+/configure policy-options policy-statement "VPRN-IMPORT-{{ vprn_name }}" default-action action-type reject
+/configure policy-options policy-statement "VPRN-EXPORT-{{ vprn_name }}" default-action action-type accept
+/configure policy-options policy-statement "VPRN-EXPORT-{{ vprn_name }}" default-action community add ["RT-EXPORT-SHARED-{{ vprn_name }}"]
+/configure service vprn "{{ vprn_name }}" bgp-ipvpn mpls vrf-import policy ["VPRN-IMPORT-{{ vprn_name }}"]
+/configure service vprn "{{ vprn_name }}" bgp-ipvpn mpls vrf-export policy ["VPRN-EXPORT-{{ vprn_name }}"]
+{% endif %}
+
+{%- if vprn.gw_address is defined %}
+/configure service vprn "{{ vprn_name }}" interface "{{ vprn.irb_interface_name }}" admin-state enable
+/configure service vprn "{{ vprn_name }}" interface "{{ vprn.irb_interface_name }}" ipv4 primary address {{ vprn.irb_address }}
+/configure service vprn "{{ vprn_name }}" interface "{{ vprn.irb_interface_name }}" ipv4 primary prefix-length {{ vprn.prefixlen }}
+/configure service vprn "{{ vprn_name }}" interface "{{ vprn.irb_interface_name }}" ipv4 vrrp 1 backup [{{ vprn.gw_address }}]
+/configure service vprn "{{ vprn_name }}" interface "{{ vprn.irb_interface_name }}" ipv4 vrrp 1 ping-reply true
+/configure service vprn "{{ vprn_name }}" interface "{{ vprn.irb_interface_name }}" ipv4 vrrp 1 traceroute-reply true
+/configure service vprn "{{ vprn_name }}" interface "{{ vprn.irb_interface_name }}" ipv4 vrrp 1 passive true
+/configure service vprn "{{ vprn_name }}" interface "{{ vprn.irb_interface_name }}" vpls "{{ vprn.vpls_name }}"
+{%- endif %}
+
+{% endfor %}
+{% endfor %}
+{% endif %}

@@ -1,0 +1,33 @@
+{% for device in devices %}
+{# Config loads on radio select — not hover — so sweeping the list no longer
+   thrashes the panel. The radio carries the hx-get; a shared name keeps a
+   single selection. #}
+<tr>
+  <td class="text-center">
+    <input type="radio" class="form-check-input" name="device-select"
+           value="{{ device.hostname }}"
+           aria-label="Show configuration for {{ device.hostname }}"
+           hx-get="{{ url_for('devices.config', hostname=device.hostname) }}"
+           hx-target="#config-panel"
+           hx-swap="innerHTML"
+           hx-trigger="change"
+           hx-indicator="#config-spinner">
+  </td>
+  <td class="fw-medium">{{ device.hostname }}</td>
+  <td><span class="badge bg-secondary">{{ device.role or '—' }}</span></td>
+  <td>{{ device.site or '—' }}</td>
+  <td><small class="text-muted">{{ device.model_name or '—' }}</small></td>
+  <td>{{ device.status or '—' }}</td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="6" class="text-center text-muted py-4">
+    {% if is_filtered %}No devices match the current filters.{% else %}No devices found.{% endif %}
+  </td>
+</tr>
+{% endfor %}
+
+{# OOB: keep the count badge in sync without re-rendering the whole page #}
+<span id="filter-count" hx-swap-oob="true" class="text-muted small align-self-center ms-1">
+  {% if is_filtered %}{{ devices|length }} of {{ total }}{% endif %}
+</span>

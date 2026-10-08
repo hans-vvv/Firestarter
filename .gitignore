@@ -1,0 +1,187 @@
+# Custom entries
+old/
+app/logging/logging.txt
+app/logging/logs/*
+# Generated Nornir inventory — derived from the database, rebuilt every run.
+app/automation/generated/*
+!app/automation/generated/.gitkeep
+# DATA ROOT (FIRESTARTER_DATA, default <repo>/data).
+# In the production tool nothing under the data root is tracked (ADR 0001): its
+# values differ per server. The demo is different: its *inputs* ARE the demo —
+# the topology workbook, the service/addressing YAML, the compliance reference
+# inputs and the simulated-device drift file — so those travel in git. Everything
+# the pipeline and the simulation *generate* (database, rendered artifacts,
+# backups, inventory, snapshots, reports, logs) is rebuilt by
+# scripts/bootstrap_demo.py and stays ignored.
+/data/app.db
+/data/app.db-journal
+/data/artifacts/
+/data/backups/
+/data/automation/
+/data/state_snapshots/
+/data/logs/
+/data/compliance/reports/
+/data/manifest.json
+
+# The compliance remediation package keeps its engine code + __init__/README tracked
+# under app/ (code); only its per-role <role>.yaml specs are data, and those now live
+# under /data/ (ADR 0004).
+.vscode/
+# Ignore everything under .claude/ EXCEPT settings.json, so harness permissions
+# (the deny rules that prevent rm-against-.venv etc.) travel with the repo.
+# Note: `.claude/` (the directory) is intentionally NOT excluded — git cannot
+# re-include a file inside an excluded directory.
+.claude/*
+!.claude/settings.json
+*.html
+!app/web/templates/**/*.html
+artifacts/
+state_snapshots/
+secrets.json
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+~$*
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+.idea/
+.continue
+.flaskenv
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.venv
+__pypackages__/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+debug.log
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+docs/site
+/site
+
+# PyBuilder
+.pybuilder/
+.target/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+#Pipfile.lock
+poetry.lock
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.env.*
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/

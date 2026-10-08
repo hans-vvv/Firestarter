@@ -1,0 +1,62 @@
+# Deviations the simulated devices show versus the intended configuration.
+#
+# Read by app/automation/simulated_devices.py on every backup fetch. Lines are
+# written in the normalised form (no leading "/"), the same way the compliance
+# ignore rules are. See the module docstring for the full format.
+#
+# Each entry below is a plausible operational story: a neighbour someone removed
+# while troubleshooting, a port left disabled after maintenance, a temporary
+# static route or user that was never cleaned up, a half-finished change on one
+# side of a PE pair.
+
+devices:
+
+  # A PE whose operator removed one RR session during an incident and never put it
+  # back, and who patched a LAG description by hand.
+  pe1.Site10:
+    remove:
+      - startswith: 'configure router "Base" bgp neighbor "10.0.0.2"'
+    replace:
+      - from: 'configure lag "lag-2" description "Remote: pe1.Site11:lag-2"'
+        to:   'configure lag "lag-2" description "Remote: pe1.Site11:lag-2 (TEMP - ticket 4711)"'
+
+  # A PE with a port still administratively down after maintenance, plus a
+  # troubleshooting static route that outlived the troubleshooting.
+  pe1.Site12:
+    replace:
+      - from: 'configure port 1/1/c5/1 admin-state enable'
+        to:   'configure port 1/1/c5/1 admin-state disable'
+    add:
+      - 'configure router "Base" static-routes route 192.168.99.0/24 route-type unicast next-hop "10.0.4.1" admin-state enable'
+
+  # A core router: IS-IS authentication was never enabled on one ring interface,
+  # and the MTU on that link was changed by hand on one side only.
+  core1.Site1:
+    remove:
+      - exact: 'configure router "Base" isis 0 interface "lag-2" hello-authentication-keychain "ISIS-KEYCHAIN"'
+    replace:
+      - from: 'configure port 1/1/c2/1 ethernet mtu 9212'
+        to:   'configure port 1/1/c2/1 ethernet mtu 9000'
+
+  # A route reflector with a leftover local account.
+  rr1.Site2:
+    add:
+      - 'configure system security user-params local-user user "tempadmin" access console true'
+      - 'configure system security user-params local-user user "tempadmin" console member ["administrative"]'
+      - 'configure system security user-params local-user user "tempadmin" password "$2y$10$Zq8wE2rT6yU1iO3pA5sD7fG9hJ0kL2zX4cV6bN8mQ1wE3rT5yU7iO"'
+
+  # The second PE of a pair where the customer VPLS SAP was never provisioned.
+  pe2.Site11:
+    remove:
+      - startswith: 'configure service vpls "CUSTOMER-B-300" sap lag-33:30'
+
+  # A core router whose LAG description still names the old remote port.
+  core1.Site5:
+    replace:
+      - from: 'configure lag "lag-1" description "Remote: core1.Site1:lag-4"'
+        to:   'configure lag "lag-1" description "Remote: core1.Site1:lag-3"'
+
+# Devices whose fetch fails; shown as failed backups and as fetch failures in the
+# compliance run rather than as drift.
+unreachable:
+  pe1.Site19: "TCP connection to device failed."

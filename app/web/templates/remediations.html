@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Compliance remediations{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Compliance remediations</h1>
+<p class="text-muted mb-4" style="max-width: 70ch">
+  Per-role remediation specs the compliance remediation engine reads (ADR 0004).
+  Each <strong>allow</strong> rule marks a missing-intended line safe to push back
+  to devices; an optional <strong>remediation_commands</strong> block carries verbatim
+  commands (typically <code>delete …</code>) and <strong>conditions</strong> gate
+  which devices are eligible. Files are keyed by <em>role name</em>, not hostname
+  (the <code>core1.*</code> devices are role <code>core</code>, so their file is <code>core.yaml</code>). Changes take
+  effect on the next remediation projection.
+</p>
+
+<div class="row g-4">
+  <div class="col-12 col-xl-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
+        <i class="bi bi-wrench-adjustable fs-5 text-secondary"></i>
+        <span class="fw-medium">Remediation specs</span>
+        <code class="text-muted small ms-auto">app/compliance/remediation/</code>
+      </div>
+      <div class="card-body">
+        {{ render_files() | safe }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="editor-panel"></div>
+{% endblock %}

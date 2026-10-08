@@ -1,37 +1,47 @@
-# What NOT to send to the build (the "build context").
+# .dockerignore for the Firestarter demo: what the build may see.
+#
+# ALLOWLIST: start by excluding everything, then let in only what the
+# Dockerfile COPYs. A new file or folder in the repo root (a venv, a bundle
+# ZIP, a secret, generated data) stays out unless it's added here.
+# Rules are read top to bottom; the last matching rule wins.
 
-# Version control, editors, local environments
-.git
-.claude
-.vscode
-.idea
-.venv
-venv
+*
+
+# --- Let in: what the Dockerfile COPYs ---
+!pyproject.toml
+!alembic.ini
+!run.py
+!docker-entrypoint.sh
+!app
+!migrations
+!scripts/bootstrap_demo.py
+# the demo starter kit: inputs only
+!data/topology.xlsx
+!data/services
+!data/compliance
+!data/simulation
+# test stage only (docker build --target test); never in the runtime image
+!tests
+
+# --- Shut out again: what doesn't belong inside those folders ---
+
+# Python caches
 **/__pycache__
 **/*.py[cod]
+**/.pytest_cache
 
-# Environment data (ADR 0001): never inside an image
-app.db
-manifest.json
-app/tiger.xlsx
-app/backups
-app/services/services_definitions/*_def.yaml
-app/services/service_handling/addressing_definitions/*.yaml
-app/compliance/extra/*.cfg
-app/compliance/ignore/*.yaml
-app/compliance/remediation/*.yaml
-app/compliance/reports
-app/automation/generated/*
-app/logging/logs
+# Generated output that can sit in a local data/ folder
+data/compliance/reports
 
-# Secrets, just in case
-secrets.json
-*.pem
-*.key
-*.env
-
-# Not needed at runtime
-docs
-old
-artifacts
-state_snapshots
+# Environment data never lives in the code tree (ADR 0001); a cheap net in
+# case some turns up anyway: workbooks, pickles, device configs, logs,
+# databases, bundle files. (tests/ keeps its fixture workbook, data/ its inputs.)
+app/**/*.xlsx
+app/**/*.pkl
+app/**/*.cfg
+app/**/*.log*
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.sqlite*
+**/manifest.json

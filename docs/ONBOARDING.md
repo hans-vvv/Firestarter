@@ -1,21 +1,26 @@
 # Onboarding — from clone to running
 
-This project separates **code** from **environment data**. Git carries the code and the
-test suite's own fixtures; it does **not** carry the database, the input workbook, the
-service/addressing YAML, or the compliance reference files. Those live on each server and
+This project separates **code** from **environment data**. In the production tool, git
+carries only the code and the test suite's own fixtures; the database, the input workbook,
+the service/addressing YAML and the compliance reference files live on each server and
 travel as a downloadable ZIP (see [ADR 0001](adr/0001-code-vs-environment-data.md)).
 
 All of that data — and every writable output — lives under a single **data root**,
-resolved from `FIRESTARTER_DATA` (default `<repo>/data`). The repository itself holds no
-data. A deployment points `FIRESTARTER_DATA` at an external, project-namespaced directory
-(`<data-root>`, or `/data` in a container); a plain checkout just uses
-`<repo>/data`. See [ADR 0001](adr/0001-code-vs-environment-data.md) and the
-`app.domain.file_locations` registry.
+resolved from `FIRESTARTER_DATA` (default `<repo>/data`). A deployment points
+`FIRESTARTER_DATA` at an external, project-namespaced directory (`<data-root>`, or `/data`
+in a container); a plain checkout just uses `<repo>/data`. See
+[ADR 0001](adr/0001-code-vs-environment-data.md) and the `app.domain.file_locations` registry.
 
-The practical consequence, and the thing that surprises everyone once:
+**This demo repository is the one exception:** its synthetic *inputs* are the demo, so they
+are tracked in git under `data/` — `topology.xlsx`, `services/{definitions,addressing}/*.yaml`,
+`compliance/{extra,ignore,remediation}/*` and `simulation/drift.yaml`. Everything the
+pipeline *generates* (database, rendered configs, backups, inventory, snapshots, reports,
+logs) stays gitignored and is built by `scripts/bootstrap_demo.py`.
 
-> **A fresh clone has no data. The test suite passes anyway; the pipeline and the
-> dashboard do not, until you seed data.**
+The practical consequence:
+
+> **A fresh clone has the demo inputs but no database or generated output. The test suite
+> passes anyway; the pipeline and the dashboard need `scripts/bootstrap_demo.py` first.**
 
 ---
 
@@ -43,8 +48,18 @@ in the test isolation, not a missing-data problem.
 
 ## 2. Get the data
 
-Everything below is gitignored and must be obtained from a running environment. The paths
-are **relative to the data root** (`FIRESTARTER_DATA`, default `<repo>/data`):
+**The demo:** the inputs are already in `data/`. Build the rest with:
+
+```bash
+FIRESTARTER_DEMO=1 python scripts/bootstrap_demo.py   # schema, pipeline, render, simulated backups, compliance, inventory
+```
+
+The script is idempotent. Of the files in the table below, only `app.db` is generated; the
+rest are tracked (the demo has no BOF definitions).
+
+**Any other data set** (a real environment): everything below is gitignored there and must
+be obtained from a running environment. The paths are **relative to the data root**
+(`FIRESTARTER_DATA`, default `<repo>/data`):
 
 | What | Path (under the data root) |
 |---|---|

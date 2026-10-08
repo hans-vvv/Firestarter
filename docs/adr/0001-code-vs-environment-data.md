@@ -121,6 +121,17 @@ install on the old nested layout is moved onto this one with
 `python -m app.data_bundle.migrate_layout <old-root> <data-root>`, which copies the old
 `app/...` data across and leaves the old tree intact until you verify.
 
+## The demo repository
+
+The public demo deliberately deviates from the decision above. Its data is synthetic and
+the same everywhere, and the *inputs* are the demo itself, so they are tracked under
+`data/`: `topology.xlsx`, `services/{definitions,addressing}/*.yaml`,
+`compliance/{extra,ignore,remediation}/*` and `simulation/drift.yaml`. Everything the
+pipeline and the simulation *generate* (database, rendered artifacts, backups, inventory,
+snapshots, reports, logs) stays gitignored and is rebuilt by `scripts/bootstrap_demo.py`.
+The gitignore therefore lists those generated paths instead of a single `/data/` line.
+The data root, the registry and the bundle mechanism are unchanged.
+
 ## Notes for future work
 
 - ~~Once device backups are produced automatically, that backup directory should join the

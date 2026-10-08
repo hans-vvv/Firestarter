@@ -52,9 +52,9 @@ carried. No indirection for its own sake — if a plain function works, use it.
 - `README.md` — what the demo is and how to start it
 - `docs/ARCHITECTURE.md` — what the system is
 - `docs/ADDING_A_NEW_SERVICE.md` — how to add a service type
-- `docs/ONBOARDING.md` — clone → running; why a fresh clone has no data
+- `docs/ONBOARDING.md` — clone → running; what a fresh clone does and does not contain
 - `docs/adr/` — **why** decisions were made. Read before proposing to change one:
-  - `0001` code vs environment data (why nothing but code is tracked)
+  - `0001` code vs environment data (why only code is tracked; the demo's exception)
   - `0002` minimal YAML validation (why there is no full schema)
   - `0003` where logic lives (YAML vs template vs handler)
   - `0004` compliance remediation
@@ -70,12 +70,17 @@ python3 -m venv .venv
 ```
 
 - All environment data (database, `topology.xlsx`, service/addressing YAML, compliance
-  inputs, rendered outputs) lives under one gitignored data root (`FIRESTARTER_DATA`,
-  default `<repo>/data`). The test suite does not depend on it.
+  inputs, rendered outputs) lives under one data root (`FIRESTARTER_DATA`, default
+  `<repo>/data`). The test suite does not depend on it.
+- In this demo repo the data root's *inputs* (`topology.xlsx`, service/addressing YAML,
+  compliance inputs, `simulation/drift.yaml`) are tracked in git; everything generated
+  (database, rendered configs, backups, inventory, snapshots, reports, logs) is gitignored
+  and rebuilt by `scripts/bootstrap_demo.py`. In production nothing under it is tracked
+  (ADR 0001).
 - Column-level schema changes go through Alembic (`migrations/`); new tables are
   additive via `ensure_schema()`.
 - `app/compliance/compliance_snapshot.py` (then `--diff`) captures and compares the
   rendered configuration of the whole topology, for checking that a change does not
   alter rendered configs unintentionally.
-- Never run `git clean -x` — the `-x` flag deletes ignored files, which is the whole
-  data root. Permissions and deny rules live in `.claude/settings.json`.
+- Never run `git clean -x` — the `-x` flag deletes ignored files, which is all generated
+  data under the data root. Permissions and deny rules live in `.claude/settings.json`.

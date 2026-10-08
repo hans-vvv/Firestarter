@@ -34,7 +34,40 @@ No real devices are involved. The Nornir/Netmiko automation code (device backup,
 push, compliance fetch) is kept for reference, but every action that would contact a
 device is disabled in this version.
 
-### Quick start
+### Run it with Docker (quickest)
+
+```bash
+docker run -p 8080:8080 ghcr.io/hans-vvv/firestarter
+```
+
+Open http://localhost:8080 (or `http://<server-ip>:8080`) and log in as `admin` /
+`changeme`. No clone, no Python: the first start builds the whole demo inside the
+container (schema, pipeline, rendered configs, simulated backups, compliance, inventory),
+which takes a few seconds.
+
+Without a volume the demo is thrown away when the container stops. To keep your changes
+between runs, give it a named volume:
+
+```bash
+docker run -d --name firestarter -p 8080:8080 -v firestarter-data:/data ghcr.io/hans-vvv/firestarter
+```
+
+Start over with a clean demo: `docker rm -f firestarter && docker volume rm firestarter-data`.
+Upgrade to a newer image with `docker pull ghcr.io/hans-vvv/firestarter`, then remove and
+re-create the container (the volume is kept).
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `FIRESTARTER_ADMIN_PASSWORD` | `changeme` | Password of `admin`; only used on the first start. |
+| `SECRET_KEY` | demo value | Flask session key; set a random value for anything that is not a throw-away demo. |
+
+Example: `docker run -p 8080:8080 -e FIRESTARTER_ADMIN_PASSWORD=s3cret ghcr.io/hans-vvv/firestarter`
+
+From a clone of this repository, `docker compose up -d --build` does the same with a
+local build and a persistent volume. See [the Docker guide](docs/DOCKER_GUIDE.md) for
+building, publishing and troubleshooting the image.
+
+### Run it from source
 
 ```bash
 python3 -m venv .venv
@@ -49,21 +82,12 @@ first login — leave it unset on anything that is not a throw-away demo. The bo
 script is idempotent and expects the demo data root (`data/`) to be in place; see
 [Onboarding](docs/ONBOARDING.md) for the general clone → running story.
 
+### Simulated devices
+
 The devices are **simulated**: a "backup" is the device's own rendered configuration,
 reshaped into an SR OS flat dump, with the deviations listed in
 `data/simulation/drift.yaml` applied — so the Compliance and Remediation pages have
 real-looking drift to show without a single router being contacted.
-
-
-### Screenshots
-
-| Overview | Devices |
-|---|---|
-| ![Overview](docs/screenshots/overview.png) | ![Devices](docs/screenshots/devices.png) |
-
-| Compliance run against the simulated devices | Service definitions |
-|---|---|
-| ![Compliance](docs/screenshots/compliance_run.png) | ![Services](docs/screenshots/services.png) |
 
 The dashboard loads Bootstrap from a CDN, so the browser needs internet access for
 styling (the application itself makes no outbound connections).
@@ -114,9 +138,10 @@ It is deliberately lightweight and focused.
 
 ## Documentation
 
-- **[Installing and running on a VM](docs/INSTALL_VM.md)** — step by step, including a systemd service.
 - **[Onboarding — from clone to running](docs/ONBOARDING.md)** — start here. A fresh clone
-  has no data: the test suite passes, but the pipeline and dashboard need a data root first.
+  has the demo inputs but no database: the test suite passes, but the pipeline and dashboard
+  need `scripts/bootstrap_demo.py` first.
+- [Docker guide](docs/DOCKER_GUIDE.md) — building, running and publishing the demo image
 - [Architecture Overview](docs/ARCHITECTURE.md) — what the system is
 - [Architecture Decision Records](docs/adr/README.md) — why it is that way
 - [Adding a new service](docs/ADDING_A_NEW_SERVICE.md)

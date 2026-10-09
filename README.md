@@ -138,8 +138,6 @@ It is deliberately lightweight and focused.
 
 ## Documentation
 
-- A fresh clone has the demo inputs but no database: the test suite passes, but the
-  pipeline and dashboard need `scripts/bootstrap_demo.py` first.
 - [Docker guide](docs/DOCKER_GUIDE.md) — building, running and publishing the demo image
 - [Architecture Overview](docs/ARCHITECTURE.md) — what the system is
 - [Architecture Decision Records](docs/adr/README.md) — why it is that way

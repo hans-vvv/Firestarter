@@ -80,17 +80,17 @@ ZIP format
 latest topology and service data is persisted in the DB, so new configurations can be generated. The result is 
 presented here.
 
-### The dashbord - Data
-- Excel data. The topology, but also resource pools, are stored in an Excel document. If new devices or resource pools are added, you can upload a new version. Right after the upload, the entered data is validated. See validation modules for details. Existing data (devices, cables, etc) is not re-entered in the DB if the objects already exists (idempotency). 
+### The dashboard - Data
+- Excel data. The topology, but also resource pools, are stored in an Excel document. If new devices or resource pools are added, you can upload a new version. Right after the upload, the entered data is validated. See validation modules for details. Existing data (devices, cables, etc) is not re-entered in the DB if the objects already exist (idempotency). 
 - Data bundle. A data bundle can be downloaded. This bundle includes all environmental data including the sqlite DB file.
 - Service data. All YAML service definition files are present here.
 - Service snippets. Per device you can filter per service (VPLS or VPRN) and display the corresponding configuration. You also
 can push the configuration to the device.
 
-### The dashbord - Compliance
-- Compliance. By pushing the "Run Compliance" button, symmetric diffs between the generated and real configuration are presented. In this demo syntetic data is used to generated the differences. By pressing '>' of core1.Site1 the result is shown. When you scroll to the buttom of the page and press "Remediation Candidates" you can select core1.Site1 again and remediate the difference. The remediation always uses "commit confirmed 1" in order you to prevent you to lockout you from the device. The presented remediation candidates must be configred explicitly using pattern recognition of the configuration lines missing or lines that must be deleted.
-- Compliance exceptions. You can either ignore or add (extra) lines. In the base.cfg files (this means for all devices) some examples are presented. You can also make files per device role (ex: core.cfg) or per hostname. In this demo, you can for example make a new file named pe.cfg, and put some data in it. When you re-run compliance, then you see that the affecting devices are Non-Compliant now. The 'Extra config' files can be used to store non modelled configuration lines, or lines that are candidate to be modelled later in the Jinja2 templates. So the remediation feature is also very helpfull to rollout or modify features on selected devices.
-- Compliance remediation. As stated before all remediation candidates must be configured explicit.
+### The dashboard - Compliance
+- Compliance. By pushing the "Run Compliance" button, symmetric diffs between the generated and real configuration are presented. In this demo synthetic data is used to generate the differences. By pressing '>' of core1.Site1 the result is shown. When you scroll to the bottom of the page and press "Remediation Candidates" you can select core1.Site1 again and remediate the difference. The remediation always uses "commit confirmed 1" in order to prevent locking you out of the device. The presented remediation candidates must be configured explicitly using pattern recognition of the configuration lines missing or lines that must be deleted.
+- Compliance exceptions. You can either ignore or add (extra) lines. In the base.cfg files (this means for all devices) some examples are presented. You can also make files per device role (ex: core.cfg) or per hostname. In this demo, you can for example make a new file named pe.cfg, and put some data in it. When you re-run compliance, then you see that the affected devices are Non-Compliant now. The 'Extra config' files can be used to store non modelled configuration lines, or lines that are candidate to be modelled later in the Jinja2 templates. So the remediation feature is also very helpful to rollout or modify features on selected devices.
+- Compliance remediation. As stated before all remediation candidates must be configured explicitly.
 
 ## What it does
 
@@ -111,9 +111,9 @@ and treats configuration generation as a compile-time operation.
 
 1. Create or update persisted network topology by modifying the Excel document
 2. Insert resource pools. These are defined in the Excel document and added to the DB.
-2. Define services and addressing policies using YAML specifications. 
-3. Compile topology and intent into device-scoped configuration data
-4. Render complete device configurations using vendor templates
+3. Define services and addressing policies using YAML specifications. 
+4. Compile topology and intent into device-scoped configuration data
+5. Render complete device configurations using vendor templates
 
 ## Design principles
 

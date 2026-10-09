@@ -19,8 +19,6 @@ from app.repositories import get_device_by_hostname
 from app.services.context.device_context import DeviceContextComposer
 from app.services.context.services_context import compose_services
 from app.utils import (
-    breakout_name,
-    coherent_frequency,
     deep_merge,
     peer_ip_on_p2p,
     require,
@@ -143,8 +141,6 @@ class Printer:
             lstrip_blocks=True,
         )
         env.filters["peer_ip_on_p2p"] = peer_ip_on_p2p
-        env.filters["breakout_name"] = breakout_name
-        env.filters["coherent_frequency"] = coherent_frequency
 
         self._env_cache[template_dir] = env
         return env

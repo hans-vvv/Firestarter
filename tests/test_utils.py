@@ -5,9 +5,7 @@ import pytest
 from app.utils import require
 from app.utils.utils import (
     Tree,
-    breakout_name,
     cidr_to_address_mask,
-    coherent_frequency,
     deep_merge,
     peer_ip_on_p2p,
 )
@@ -228,54 +226,3 @@ class TestCidrToAddressMask:
         addr, mask = cidr_to_address_mask("10.1.1.1/32")
         assert addr == "10.1.1.1"
         assert mask == "255.255.255.255"
-
-
-# ---------------------------------------------------------------------------
-# coherent_frequency()
-# ---------------------------------------------------------------------------
-
-
-class TestCoherentFrequency:
-    def test_channel_becomes_the_router_frequency(self):
-        """Channel 9266.250 → 1·9266250·0 = 192662500 MHz (192.6625 THz)."""
-        assert coherent_frequency("c1-400g-9266.250") == 192_662_500
-
-    def test_fractional_channel_keeps_megahertz_precision(self):
-        assert coherent_frequency("c1-400g-9143.750") == 191_437_500
-
-    def test_named_horseshoe_channel_maps_to_193_1_thz(self):
-        """The fake horseshoe optic is pinned to channel 9310.000 = 193.1 THz."""
-        assert coherent_frequency("c1-400g-horseshoe") == 193_100_000
-
-    @pytest.mark.parametrize("connector", ["c1-400g", "c1-100g", "c1-25g"])
-    def test_grey_optic_has_no_frequency(self, connector):
-        assert coherent_frequency(connector) is None
-
-    @pytest.mark.parametrize("connector", [None, ""])
-    def test_absent_connector_has_no_frequency(self, connector):
-        assert coherent_frequency(connector) is None
-
-    def test_frequency_is_not_range_checked(self):
-        """The channel comes from a validated design; the renderer does not second-guess it."""
-        assert coherent_frequency("c1-400g-9475.000") == 194_750_000
-
-
-# ---------------------------------------------------------------------------
-# breakout_name()
-# ---------------------------------------------------------------------------
-
-
-class TestBreakoutName:
-    def test_numeric_channel_suffix_is_stripped(self):
-        assert breakout_name("c1-400g-9266.250") == "c1-400g"
-
-    def test_named_channel_suffix_is_stripped(self):
-        assert breakout_name("c1-400g-horseshoe") == "c1-400g"
-
-    @pytest.mark.parametrize("connector", ["c1-400g", "c1-100g", "c1-25g"])
-    def test_grey_optic_name_is_unchanged(self, connector):
-        assert breakout_name(connector) == connector
-
-    @pytest.mark.parametrize("connector", [None, ""])
-    def test_absent_connector_is_empty(self, connector):
-        assert breakout_name(connector) == ""

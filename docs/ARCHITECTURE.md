@@ -34,47 +34,6 @@ Each pillar is independently callable through the [Web layer](#web-dashboard).
 
 ---
 
-## Data root and file locations
-
-Module: `app.domain.file_locations`
-[View source](../app/domain/file_locations.py)
-
-Every per-environment **data** file (the database, `topology.xlsx`, the service /
-addressing definitions, the compliance `ignore` / `extra` / `remediation`
-inputs) and every **writable output** directory (rendered `artifacts`, device
-`backups`, compliance `reports`) lives under a single `DATA_ROOT`,
-in a **flat layout that contains no code**:
-
-```
-<DATA_ROOT>/
-  app.db  topology.xlsx
-  services/{definitions,addressing}/
-  compliance/{ignore,extra,remediation,reports}/
-  backups/   artifacts/
-  automation/generated/   logs/
-```
-
-Each path is declared once in the registry as a `FileLocations`; its `.path`
-property resolves against the live data root, so no module computes data paths
-from its own `__file__` or the process CWD.
-
-`DATA_ROOT` is read live from the `FIRESTARTER_DATA` environment variable and
-falls back to `<repo>/data` — a single gitignored directory holding no code, so a
-plain checkout and its worktrees work with zero configuration. Setting
-`FIRESTARTER_DATA` repoints **all** data and output at once to an external,
-project-namespaced root: `<data-root>` on a deployed instance, or
-`/data` (a mounted volume) in a container, keeping the repository / image pure
-code. Code and Jinja2 templates are never declared here: they travel in git / the
-image and resolve relative to their own module.
-
-This is the runtime counterpart to the download-bundle taxonomy in
-`app.data_bundle.spec` (which derives from this same registry for the seed/bundle
-path); see [ADR 0001](adr/0001-code-vs-environment-data.md). An existing install on the
-old nested layout is moved onto this one with `python -m app.data_bundle.migrate_layout`
-(one-time), which copies the old `app/...` data into the data root.
-
----
-
 ## Database model
 
 Module: `app.models`
@@ -255,25 +214,6 @@ Templates get a few custom Jinja filters, registered on the environment in
 | Filter | Purpose |
 |---|---|
 | `peer_ip_on_p2p` | The other address of a /30 or /31 |
-| `breakout_name` | A connector-breakout name as the device knows it — `c1-400g-9266.250` → `c1-400g`, and the named `c1-400g-horseshoe` → `c1-400g` |
-| `coherent_frequency` | The DWDM channel that same name encodes, in megahertz — channel `9266.250` → `192662500`; `None` for a grey optic |
-
-Coherent DWDM optics are modelled through the connector-breakout name alone: a
-port's connector type carries a name that also names the DWDM channel it is tuned
-to. The router frequency in MHz is that channel with a leading
-`1` and a trailing `0` — channel `9266.250` → `192662500` MHz (192.6625 THz),
-equivalently `100_000_000 + channel * 10_000`. A few "fake" connectors name a fixed
-channel by an engineering label instead of a number: `c1-400g-horseshoe` is the
-metro-ring optic — strings of PE routers homed onto two core routers —
-pinned to channel `9310.000` (193.1 THz). The device has no such breakout type, so
-the suffix is stripped from the `connector breakout` line and reappears in
-`underlay.j2` as `transceiver digital-coherent-optics true` followed by
-`dwdm coherent compatibility long-haul` and `dwdm frequency` — the transceiver line
-first, since it is what puts the port in coherent mode. Every coherent link is
-engineered long-haul; the compatibility mode does not depend on the roles the link
-terminates on. All of the lines are written against the *connector* port (`1/1/c1`)
-rather than the breakout port (`1/1/c1/1`) — the optic is the connector, so that is
-where SR OS keeps its coherent configuration.
 
 ---
 
@@ -990,6 +930,45 @@ classDiagram
 ```
 
 ---
+
+## Data root and file locations
+
+Module: `app.domain.file_locations`
+[View source](../app/domain/file_locations.py)
+
+Every per-environment **data** file (the database, `topology.xlsx`, the service /
+addressing definitions, the compliance `ignore` / `extra` / `remediation`
+inputs) and every **writable output** directory (rendered `artifacts`, device
+`backups`, compliance `reports`) lives under a single `DATA_ROOT`,
+in a **flat layout that contains no code**:
+
+```
+<DATA_ROOT>/
+  app.db  topology.xlsx
+  services/{definitions,addressing}/
+  compliance/{ignore,extra,remediation,reports}/
+  backups/   artifacts/
+  automation/generated/   logs/
+```
+
+Each path is declared once in the registry as a `FileLocations`; its `.path`
+property resolves against the live data root, so no module computes data paths
+from its own `__file__` or the process CWD.
+
+`DATA_ROOT` is read live from the `FIRESTARTER_DATA` environment variable and
+falls back to `<repo>/data` — a single gitignored directory holding no code, so a
+plain checkout and its worktrees work with zero configuration. Setting
+`FIRESTARTER_DATA` repoints **all** data and output at once to an external,
+project-namespaced root: `<data-root>` on a deployed instance, or
+`/data` (a mounted volume) in a container, keeping the repository / image pure
+code. Code and Jinja2 templates are never declared here: they travel in git / the
+image and resolve relative to their own module.
+
+This is the runtime counterpart to the download-bundle taxonomy in
+`app.data_bundle.spec` (which derives from this same registry for the seed/bundle
+path); see [ADR 0001](adr/0001-code-vs-environment-data.md). An existing install on the
+old nested layout is moved onto this one with `python -m app.data_bundle.migrate_layout`
+(one-time), which copies the old `app/...` data into the data root.
 
 ### Final Note
 

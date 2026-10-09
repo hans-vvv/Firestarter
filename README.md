@@ -34,16 +34,11 @@ No real devices are involved. The Nornir/Netmiko automation code (device backup,
 push, compliance fetch) is kept for reference, but every action that would contact a
 device is disabled in this version.
 
-### Run it with Docker (quickest)
+### Run it with Docker
 
 ```bash
 docker run -p 8080:8080 ghcr.io/hans-vvv/firestarter
 ```
-
-Open http://localhost:8080 (or `http://<server-ip>:8080`) and log in as `admin` /
-`changeme`. No clone, no Python: the first start builds the whole demo inside the
-container (schema, pipeline, rendered configs, simulated backups, compliance, inventory),
-which takes a few seconds.
 
 Without a volume the demo is thrown away when the container stops. To keep your changes
 between runs, give it a named volume:
@@ -56,25 +51,6 @@ Start over with a clean demo: `docker rm -f firestarter && docker volume rm fire
 Upgrade to a newer image with `docker pull ghcr.io/hans-vvv/firestarter`, then remove and
 re-create the container (the volume is kept).
 
-| Variable | Default | Meaning |
-|---|---|---|
-| `FIRESTARTER_ADMIN_PASSWORD` | `changeme` | Password of `admin`; only used on the first start. |
-| `SECRET_KEY` | demo value | Flask session key; set a random value for anything that is not a throw-away demo. |
-
-Example: `docker run -p 8080:8080 -e FIRESTARTER_ADMIN_PASSWORD=s3cret ghcr.io/hans-vvv/firestarter`
-
-From a clone of this repository, `docker compose up -d --build` does the same with a
-local build and a persistent volume. See [the Docker guide](docs/DOCKER_GUIDE.md) for
-building, publishing and troubleshooting the image.
-
-### Run it from source
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
-FIRESTARTER_DEMO=1 .venv/bin/python scripts/bootstrap_demo.py   # schema, pipeline, render, simulated backups, compliance, inventory
-FIRESTARTER_DEMO=1 .venv/bin/python run.py                      # dashboard on http://127.0.0.1:5000
-```
 
 Log in as `admin` / `changeme`. `FIRESTARTER_ADMIN_PASSWORD` sets a different bootstrap
 password; `FIRESTARTER_DEMO=1` keeps that password usable instead of forcing a change on
@@ -91,6 +67,31 @@ real-looking drift to show without a single router being contacted.
 
 The dashboard loads Bootstrap from a CDN, so the browser needs internet access for
 styling (the application itself makes no outbound connections).
+
+### The dashboard - Devices
+
+- Device list shows the generated rendered configuration from the DB. By selecting a radio button on the left
+the configuration is shown. By pushing 'Generate Configs' on the right you can download the configurations in 
+ZIP format
+- Latest Backups shows the configurations present on the device in flat format
+
+### The dashboard - Jobs
+
+- After you changed Jinja2 code or YAML service definitions (Data -> Service Data) you must perform a pipeline run. The 
+latest topology and service data is persisted in the DB, so new configurations can be generated. The result is 
+presented here.
+
+### The dashbord - Data
+- Excel data. The topology, but also resource pools, are stored in an Excel document. If new devices or resource pools are added, you can upload a new version. Right after the upload, the entered data is validated. See validation modules for details. Existing data (devices, cables, etc) is not re-entered in the DB if the objects already exists (idempotency). 
+- Data bundle. A data bundle can be downloaded. This bundle includes all environmental data including the sqlite DB file.
+- Service data. All YAML service definition files are present here.
+- Service snippets. Per device you can filter per service (VPLS or VPRN) and display the corresponding configuration. You also
+can push the configuration to the device.
+
+### The dashbord - Compliance
+- Compliance. By pushing the "Run Compliance" button, symmetric diffs between the generated and real configuration are presented. In this demo syntetic data is used to generated the differences. By pressing '>' of core1.Site1 the result is shown. When you scroll to the buttom of the page and press "Remediation Candidates" you can select core1.Site1 again and remediate the difference. The remediation always uses "commit confirmed 1" in order you to prevent you to lockout you from the device. The presented remediation candidates must be configred explicitly using pattern recognition of the configuration lines missing or lines that must be deleted.
+- Compliance exceptions. You can either ignore or add (extra) lines. In the base.cfg files (this means for all devices) some examples are presented. You can also make files per device role (ex: core.cfg) or per hostname. In this demo, you can for example make a new file named pe.cfg, and put some data in it. When you re-run compliance, then you see that the affecting devices are Non-Compliant now. The 'Extra config' files can be used to store non modelled configuration lines, or lines that are candidate to be modelled later in the Jinja2 templates. So the remediation feature is also very helpfull to rollout or modify features on selected devices.
+- Compliance remediation. As stated before all remediation candidates must be configured explicit.
 
 ## What it does
 

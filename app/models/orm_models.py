@@ -301,8 +301,7 @@ class Interface(Base):
         back_populates="parent",
         # No cascade: physical (LAG-child) interfaces are hardware that
         # outlives any software LAG-parent it happens to belong to.
-        # ``TopologyBuilder.detach_p2p_link`` relies on this so it can
-        # delete a LAG parent without losing its physical members.
+        # This lets a LAG parent be deleted without losing its physical members.
         # Device-level deletion still cleans up everything via the
         # Device.interfaces cascade.
     )

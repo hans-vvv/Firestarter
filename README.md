@@ -55,8 +55,7 @@ re-create the container (the volume is kept).
 Log in as `admin` / `changeme`. `FIRESTARTER_ADMIN_PASSWORD` sets a different bootstrap
 password; `FIRESTARTER_DEMO=1` keeps that password usable instead of forcing a change on
 first login — leave it unset on anything that is not a throw-away demo. The bootstrap
-script is idempotent and expects the demo data root (`data/`) to be in place; see
-[Onboarding](docs/ONBOARDING.md) for the general clone → running story.
+script is idempotent and expects the demo data root (`data/`) to be in place.
 
 ### Simulated devices
 
@@ -139,9 +138,8 @@ It is deliberately lightweight and focused.
 
 ## Documentation
 
-- **[Onboarding — from clone to running](docs/ONBOARDING.md)** — start here. A fresh clone
-  has the demo inputs but no database: the test suite passes, but the pipeline and dashboard
-  need `scripts/bootstrap_demo.py` first.
+- A fresh clone has the demo inputs but no database: the test suite passes, but the
+  pipeline and dashboard need `scripts/bootstrap_demo.py` first.
 - [Docker guide](docs/DOCKER_GUIDE.md) — building, running and publishing the demo image
 - [Architecture Overview](docs/ARCHITECTURE.md) — what the system is
 - [Architecture Decision Records](docs/adr/README.md) — why it is that way

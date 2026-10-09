@@ -68,7 +68,7 @@ Three properties of the decision are deliberate:
 **Costs**
 
 - **A fresh clone cannot run the pipeline or the dashboard until data is seeded.** This is
-  the main ergonomic cost and the reason [ONBOARDING.md](../ONBOARDING.md) exists. A fresh
+  the main ergonomic cost of this decision. A fresh
   worktree needs `python -m app.data_bundle.seed_worktree <main-repo-root>` before the
   compliance baseline can run.
 - The YAML no longer has git history. Its values are data; review and rollback for them are

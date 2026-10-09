@@ -52,7 +52,6 @@ carried. No indirection for its own sake — if a plain function works, use it.
 - `README.md` — what the demo is and how to start it
 - `docs/ARCHITECTURE.md` — what the system is
 - `docs/ADDING_A_NEW_SERVICE.md` — how to add a service type
-- `docs/ONBOARDING.md` — clone → running; what a fresh clone does and does not contain
 - `docs/adr/` — **why** decisions were made. Read before proposing to change one:
   - `0001` code vs environment data (why only code is tracked; the demo's exception)
   - `0002` minimal YAML validation (why there is no full schema)

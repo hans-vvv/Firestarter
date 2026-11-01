@@ -1,0 +1,45 @@
+{% if not hostname %}
+<p class="text-muted small mb-0">Choose a device to list its VPRN / VPLS objects.</p>
+{% elif not items %}
+<p class="text-muted small mb-0">No VPRN / VPLS services for {{ hostname }}.</p>
+{% else %}
+<form hx-post="{{ url_for('snippets.render') }}"
+      hx-target="#snippet-panel"
+      hx-swap="innerHTML">
+  <input type="hidden" name="hostname" value="{{ hostname }}">
+
+  <label class="form-label fw-medium">VPRN / VPLS objects</label>
+  <div class="dropdown">
+    <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start"
+            type="button" data-bs-toggle="dropdown"
+            data-bs-auto-close="outside" aria-expanded="false">
+      Select objects…
+    </button>
+    <ul class="dropdown-menu w-100 p-2"
+        style="max-height: 320px; overflow-y: auto;">
+      {% for item in items %}
+      <li>
+        <h6 class="dropdown-header px-2">
+          {{ item.svc_name }} · {{ item.tenant }} / {{ item.variant }}
+        </h6>
+      </li>
+      {% for obj in item.objects %}
+      <li>
+        <label class="dropdown-item d-flex align-items-center gap-2"
+               style="white-space: normal;">
+          <input class="form-check-input m-0 flex-shrink-0" type="checkbox"
+                 name="items" value="{{ obj.token }}">
+          <span>{{ obj.object_name }}</span>
+        </label>
+      </li>
+      {% endfor %}
+      {% if not loop.last %}<li><hr class="dropdown-divider"></li>{% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+
+  <button type="submit" class="btn btn-firestarter rounded-pill px-4 mt-3">
+    <i class="bi bi-file-code me-2"></i>Show snippet
+  </button>
+</form>
+{% endif %}

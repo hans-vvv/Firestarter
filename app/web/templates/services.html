@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Service Definitions{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Service definitions</h1>
+<p class="text-muted mb-4">
+  Showing definitions present on this server.
+  {% if can_write %}
+  <span class="badge bg-success-subtle text-success-emphasis ms-1">Edit enabled</span>
+  {% else %}
+  <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">Read-only</span>
+  {% endif %}
+</p>
+
+{% if can_write %}
+<div class="alert alert-info py-2">
+  <i class="bi bi-info-circle me-1"></i>
+  Editing a definition does not recompute configuration on its own —
+  <a href="{{ url_for('pipeline.index') }}" class="alert-link">run the data pipeline</a>
+  afterwards to apply your changes.
+</div>
+{% endif %}
+
+{# ── no files at all ──────────────────────────────────────────────────────── #}
+{% if cat.is_empty() %}
+<div class="alert alert-warning">No service definition files found.</div>
+{% endif %}
+
+{# ── INFRASTRUCTURE ───────────────────────────────────────────────────────── #}
+{% if cat.infra %}
+<section class="mb-5">
+  <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+    <i class="bi bi-diagram-3 fs-5 text-secondary"></i>
+    <h2 class="h5 mb-0">{{ categories.infra.label }}</h2>
+    <span class="text-muted small ms-2">{{ categories.infra.description }}</span>
+  </div>
+  <div class="row g-3">
+    {% for entry in cat.infra %}
+    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+      {% include "partials/svc_card.html" %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── SERVICES ─────────────────────────────────────────────────────────────── #}
+{% if cat.services %}
+<section class="mb-5">
+  <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+    <i class="bi bi-hdd-network fs-5 text-primary"></i>
+    <h2 class="h5 mb-0">{{ categories.services.label }}</h2>
+    <span class="text-muted small ms-2">{{ categories.services.description }}</span>
+  </div>
+  <div class="row g-3">
+    {% for entry in cat.services %}
+    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+      {% include "partials/svc_card.html" %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── editor panel (htmx target) ───────────────────────────────────────────── #}
+<div id="editor-panel"></div>
+
+{% endblock %}

@@ -1,0 +1,67 @@
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <span class="fw-medium" style="color: var(--fs-slate)">
+    <i class="bi bi-file-code me-1"></i>{{ hostname }}
+    <span class="text-muted small">
+      — {{ selected_count }} service{{ 's' if selected_count != 1 else '' }} selected
+    </span>
+  </span>
+  <span class="badge bg-secondary-subtle text-secondary-emphasis">
+    {{ lines | length }} line{{ 's' if lines | length != 1 else '' }}
+  </span>
+</div>
+
+{% if selected_count == 0 %}
+<div class="alert alert-info mb-0">
+  Select at least one service and click “Show snippet”.
+</div>
+{% elif not lines %}
+<div class="alert alert-warning mb-0">
+  The selected service{{ 's' if selected_count != 1 else '' }} contribute no
+  distinct lines for {{ hostname }}.
+</div>
+{% else %}
+<pre class="config-block"><code>{{ lines | join('\n') }}</code></pre>
+
+{% if is_admin %}
+<hr class="my-3">
+{# Deploy pushes exactly the lines above. The tokens and the digest of those lines
+   — not the config text — are posted back, so the route re-renders server-side and
+   refuses the push unless it still matches, committing only what is shown here.
+   Credentials are filled from the modal in snippets.html and cleared right after the
+   request goes out. #}
+<form id="deploy-form"
+      hx-post="{{ url_for('snippets.deploy') }}"
+      hx-target="#deploy-panel"
+      hx-swap="innerHTML"
+      hx-indicator="#deploy-spinner">
+  <input type="hidden" name="hostname" value="{{ hostname }}">
+  <input type="hidden" name="digest" value="{{ digest }}">
+  {% for token in selection %}
+  <input type="hidden" name="items" value="{{ token }}">
+  {% endfor %}
+  <input type="hidden" id="creds_username" name="username">
+  <input type="hidden" id="creds_password" name="password">
+
+  {% if selected_count > max_deploy %}
+  <div class="alert alert-warning py-2 mb-2">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    A deploy pushes at most {{ max_deploy }} services at once — {{ selected_count }}
+    are selected. Narrow the selection to deploy.
+  </div>
+  <button type="submit" class="btn btn-danger rounded-pill px-4" disabled>
+    <i class="bi bi-upload me-2"></i>Deploy to {{ hostname }}
+  </button>
+  {% else %}
+  <button type="submit" class="btn btn-danger rounded-pill px-4">
+    <i class="bi bi-upload me-2"></i>Deploy to {{ hostname }}
+  </button>
+  <span class="text-muted small ms-2">Commits these lines to the live device (confirmed).</span>
+  {% endif %}
+</form>
+
+<div id="deploy-spinner" class="htmx-indicator text-muted mt-2">
+  <span class="spinner-border spinner-border-sm me-2"></span>Pushing to {{ hostname }} — this can take a moment…
+</div>
+<div id="deploy-panel" class="mt-3"></div>
+{% endif %}
+{% endif %}

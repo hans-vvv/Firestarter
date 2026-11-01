@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Jobs{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Jobs</h1>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Executed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in jobs %}
+        <tr>
+          <td class="text-muted">{{ job.id }}</td>
+          <td class="fw-medium">{{ job.name }}</td>
+          <td>
+            {% if job.status == 'completed' %}
+            <span class="badge badge-compliant">Completed</span>
+            {% elif job.status == 'pending' %}
+            <span class="badge bg-warning text-dark">Pending</span>
+            {% else %}
+            <span class="badge bg-secondary">{{ job.status }}</span>
+            {% endif %}
+          </td>
+          <td><small class="text-muted">{{ job.created_at or '—' }}</small></td>
+          <td><small class="text-muted">{{ job.executed_at or '—' }}</small></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">No jobs found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

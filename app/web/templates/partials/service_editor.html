@@ -1,0 +1,66 @@
+{#
+  htmx partial — the editor panel that slides in below the card grid.
+  Variables: slug, filename, content, can_write, error, saved.
+#}
+<div class="card border-0 shadow-sm mt-4" id="service-editor">
+  <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-file-earmark-code fs-5 text-secondary"></i>
+      <span class="fw-medium">{{ filename }}</span>
+      <code class="text-muted small">/services/{{ slug }}</code>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill"
+            onclick="document.getElementById('editor-panel').innerHTML=''">
+      <i class="bi bi-x"></i> Close
+    </button>
+  </div>
+
+  <div class="card-body">
+
+    {% if error %}
+    <div class="alert alert-danger d-flex align-items-start gap-2 py-2">
+      <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    {% if saved %}
+    <div class="alert alert-success d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-check-circle-fill flex-shrink-0"></i>
+      <span>Saved successfully.</span>
+    </div>
+    {% endif %}
+
+    {% if can_write %}
+    <form hx-post="{{ url_for('services.save', slug=slug) }}"
+          hx-target="#service-editor"
+          hx-swap="outerHTML">
+      <div class="mb-3">
+        <textarea name="content"
+                  class="form-control font-monospace"
+                  rows="30"
+                  spellcheck="false"
+                  style="font-size:0.8rem;line-height:1.5;">{{ content }}</textarea>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-firestarter rounded-pill px-4">
+          <i class="bi bi-floppy me-1"></i> Save
+        </button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill"
+                onclick="document.getElementById('editor-panel').innerHTML=''">
+          Cancel
+        </button>
+      </div>
+    </form>
+
+    {% else %}
+    {# read-only view #}
+    <pre class="p-3 rounded border bg-light font-monospace" style="font-size:0.8rem;white-space:pre-wrap;">{{ content }}</pre>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+  document.getElementById('service-editor').scrollIntoView({behavior:'smooth', block:'start'});
+</script>

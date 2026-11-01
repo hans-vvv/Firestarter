@@ -1,0 +1,30 @@
+# Addressing policy for the demo tenant: which prefix pool feeds which
+# loopback / point-to-point link, by device role (pair).
+name: addressing_demo_def
+
+selectors:
+  devices:
+    addressing:
+      match:
+        labels:
+          tenant: demo
+
+features:
+  addressing:
+    loopback0:
+      by_roles:
+        core: core_loopback0_pool_demo
+        rr: core_loopback0_pool_demo
+        pe: pe_loopback0_pool_demo
+    loopback1:
+      by_roles:
+        core: core_loopback1_pool_demo
+        rr: core_loopback1_pool_demo
+        pe: pe_loopback1_pool_demo
+
+    p2p:
+      by_roles:
+        core-core: p2p_pool_demo
+        core-rr: p2p_pool_demo
+        core-pe: p2p_pool_demo
+        pe-pe: p2p_pool_demo

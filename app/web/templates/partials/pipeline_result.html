@@ -1,0 +1,59 @@
+{# Last-run / just-completed pipeline outcome. Rendered standalone on page load
+   and htmx-swapped after POST /pipeline/run. On a just-completed failure the
+   error modal is auto-opened. #}
+{% if last_run and last_run.status %}
+
+  {% if last_run.status == "ok" %}
+  <div class="alert alert-success">
+    <i class="bi bi-check-circle me-1"></i>
+    Pipeline completed — job <code>{{ last_run.job_name }}</code>
+    in {{ "%.1f"|format(last_run.duration_seconds) }} s
+    ({{ last_run.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC") }}).
+  </div>
+
+  {% else %}
+  <div class="alert alert-danger d-flex justify-content-between align-items-center">
+    <span>
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      Pipeline failed
+      ({{ last_run.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC") }}).
+      The database was left unchanged.
+    </span>
+    <button type="button" class="btn btn-sm btn-outline-danger"
+            data-bs-toggle="modal" data-bs-target="#pipelineErrorModal">
+      Show details
+    </button>
+  </div>
+
+  <div class="modal fade" id="pipelineErrorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Pipeline error — full traceback</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <pre class="mb-0 small" style="white-space: pre-wrap;">{{ last_run.traceback }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if just_ran %}
+  {# Auto-open the modal once, right after a failed run. htmx executes inline
+     scripts in swapped content, so this fires on the POST response. #}
+  <script>
+    (function () {
+      var el = document.getElementById('pipelineErrorModal');
+      if (el && window.bootstrap) {
+        bootstrap.Modal.getOrCreateInstance(el).show();
+      }
+    })();
+  </script>
+  {% endif %}
+  {% endif %}
+
+{% else %}
+  <p class="text-muted">The pipeline has not been run yet this session.</p>
+{% endif %}

@@ -1,0 +1,24 @@
+# Segment Routing (SR-ISIS) — node SIDs for core routers and route reflectors.
+service: sr
+tenant: demo
+variant: core
+
+selectors:
+  devices:
+    sr:
+      match:
+        labels:
+          tenant: demo
+        role:
+          include: ["core", "rr"]
+
+features:
+  sr:
+    enabled: true
+
+interface_features:
+  sr: {}
+
+parameters:
+  resource_pool_name:
+    sr_core_pool_demo

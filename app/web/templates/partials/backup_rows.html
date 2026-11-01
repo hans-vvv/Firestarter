@@ -1,0 +1,49 @@
+{% for device in devices %}
+{# Backup loads on radio select — not hover — so sweeping the list no longer
+   thrashes the panel. The radio carries the hx-get; a shared name keeps a
+   single selection. #}
+<tr>
+  <td class="text-center">
+    <input type="radio" class="form-check-input" name="device-select"
+           value="{{ device.hostname }}"
+           aria-label="Show latest backup for {{ device.hostname }}"
+           hx-get="{{ url_for('latest_backups.config', hostname=device.hostname) }}"
+           hx-target="#config-panel"
+           hx-swap="innerHTML"
+           hx-trigger="change"
+           hx-indicator="#config-spinner">
+  </td>
+  <td class="fw-medium">{{ device.hostname }}</td>
+  <td><span class="badge bg-secondary">{{ device.role or '—' }}</span></td>
+  <td>{{ device.site or '—' }}</td>
+  <td><small class="text-muted">{{ device.model_name or '—' }}</small></td>
+  <td>{{ device.status or '—' }}</td>
+  <td>
+    {% if device.backup_status == 'ok' %}
+    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+      <i class="bi bi-check-circle me-1"></i>backed up
+    </span>
+    {% elif device.backup_status == 'failed' %}
+    <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle"
+          title="{{ device.backup_error or 'fetch failed' }}">
+      <i class="bi bi-exclamation-triangle me-1"></i>failed
+    </span>
+    {% else %}
+    <span class="badge bg-light text-muted border">
+      <i class="bi bi-dash-circle me-1"></i>no backup
+    </span>
+    {% endif %}
+  </td>
+</tr>
+{% else %}
+<tr>
+  <td colspan="7" class="text-center text-muted py-4">
+    {% if is_filtered %}No devices match the current filters.{% else %}No devices found.{% endif %}
+  </td>
+</tr>
+{% endfor %}
+
+{# OOB: keep the count badge in sync without re-rendering the whole page #}
+<span id="filter-count" hx-swap-oob="true" class="text-muted small align-self-center ms-1">
+  {% if is_filtered %}{{ devices|length }} of {{ total }}{% endif %}
+</span>

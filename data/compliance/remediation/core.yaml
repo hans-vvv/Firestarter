@@ -1,0 +1,10 @@
+# core.yaml — the core1.<site> routers (Role.name "core").
+conditions:
+  status: active
+add:
+  # Whole IS-IS interface blocks, including the authentication keychain.
+  - match: startswith
+    value: 'configure router "Base" isis 0 interface'
+  # Port MTU drift on ring links.
+  - match: regex
+    value: 'configure port \d+/\d+/c\d+/\d+ ethernet mtu \d+'

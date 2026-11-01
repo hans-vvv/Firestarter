@@ -1,0 +1,102 @@
+[project]
+name = "firestarter"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.13",
+    "flask>=3.1",
+    "jinja2>=3.1",
+    "netmiko>=4.7",
+    "nornir>=3.5",
+    "nornir-netmiko>=1.0",
+    "openpyxl>=3.1",
+    "pandas>=3.0",
+    "pydantic>=2.12",
+    "PyYAML>=6.0",
+    "SQLAlchemy>=2.0",
+    "werkzeug>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0",
+    "pytest-cov>=5.0",
+    "pytest-xdist>=3.6",
+    "pyright>=1.1",
+    "ruff>=0.6",
+]
+
+# Tell setuptools that "app" is the only Python package in this repo.
+# Without this, auto-discovery sees multiple top-level directories
+# (app, lib, state_snapshots) and refuses to guess which one to ship.
+# Required for `pip install -e .` to succeed on a fresh clone or in CI.
+[tool.setuptools.packages.find]
+include = ["app*"]
+namespaces = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# Ruff owns both lint and format now; Black has been retired.
+select = [
+    "F",    # Pyflakes: real bugs (unused imports, undefined names)
+    "B",    # Bugbear: common Python footguns
+    "I",    # Import order (safe, formatter-compatible)
+    "UP",   # pyupgrade: modernize syntax for the pinned Python version
+    "SIM",  # simplify: collapse verbose patterns
+    "RUF",  # Ruff-specific checks that no other tool covers
+    "PT",   # pytest idioms and style
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-single-line = false
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "F401",  # unused imports (pytest fixtures import side-effects)
+    "F811",  # fixture redefinition
+    "B017",  # pytest.raises without match= argument
+]
+# Aggregator __init__.py modules — star-imports and re-exports are intentional.
+# These files exist to expose submodule contents under the package namespace;
+# the names are unused *within* the __init__.py but are the package's public API.
+"app/db/__init__.py" = ["F401"]
+"app/services/job_handling/__init__.py" = ["F401"]
+"app/models/__init__.py" = ["F403"]
+"app/repositories/__init__.py" = ["F403"]
+"app/services/context/composers/__init__.py" = ["F403"]
+"app/utils/__init__.py" = ["F403"]
+# main.py is a manual demo/scratchpad. Imports for currently-commented-out
+# demo sections are kept on purpose so toggling them back in is a one-line edit.
+"main.py" = ["F401", "E402"]
+
+[tool.ruff.format]
+# Defaults match Black's output; no overrides needed.
+
+[tool.pyright]
+# Pyright owns static type checking — it is the engine behind VS Code's Pylance,
+# so a clean `pyright` run locally/CI matches a clean editor experience.
+# Scoped to the shipped application package plus the top-level demo script.
+# `venvPath`/`venv` point Pyright at the shared project virtualenv so third-party
+# imports (Flask, SQLAlchemy, pandas, ...) resolve without per-invocation flags.
+include = ["app", "main.py"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+# "standard" is pyright's default tier — stricter than the editor's "basic"
+# default, but verified to add no findings on the current app code, so the gate
+# stays green while giving a little more coverage on future code.
+typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Run in parallel across all CPU cores by default (pytest-xdist). The suite is
+# setup-bound (per-test topology seeding), so this is a large wall-clock win —
+# ~2x+ on this box. Each xdist worker is its own process with its own
+# session-scoped in-memory engine, so tests stay isolated. To run serially for
+# debugging (breakpoints, -s output, clean tracebacks), override with `-n0`,
+# e.g. `pytest -n0 tests/foo/test_bar.py::test_x`.
+addopts = "-n auto"

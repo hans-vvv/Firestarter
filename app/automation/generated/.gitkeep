@@ -1,0 +1,4 @@
+# Generated Nornir inventory (hosts.yaml / groups.yaml) is written here by
+# app/automation/build_inventory.py and rebuilt fresh on every run. The files are
+# derived state — regenerable from the database in a second — so they are
+# gitignored and deliberately NOT carried in the data bundle.

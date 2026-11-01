@@ -1,0 +1,34 @@
+{% set loop = namespace(system_ip=None) %}
+{% for iface in interfaces if iface.render_type == "skip" %}
+{% if iface.name == "Loopback0" %}
+{% for ip_address in iface.iface_ip_addresses %}
+{% set loop.system_ip = ip_address.split("/")[0] %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% set system_ip = loop.system_ip.split('/')[0] if loop.system_ip else None %}
+
+{% if evpn_esi is defined %}
+{% set ns = namespace(count=0) %}
+{% for iface in evpn_esi.variant.default.interfaces %}
+{% if (iface.esi | string).isdigit() %}
+{% set ns.count = ns.count + 1 %}
+{% endif %}
+{% endfor %}
+{% if ns.count > 0 %}
+/configure service system bgp evpn route-distinguisher "{{ system_ip }}:0"
+{% endif %}
+{% for iface in evpn_esi.variant.default.interfaces %}
+{% if (iface.esi | string).isdigit() %}
+{% set esi = '0x0011111111111111' ~ iface.esi %}
+/configure service system bgp evpn ethernet-segment "ES-{{ iface.if_name.upper() }}" admin-state enable
+/configure service system bgp evpn ethernet-segment "ES-{{ iface.if_name.upper() }}" esi {{ esi }}
+/configure service system bgp evpn ethernet-segment "ES-{{ iface.if_name.upper() }}" multi-homing-mode all-active
+/configure service system bgp evpn ethernet-segment "ES-{{ iface.if_name.upper() }}" association lag "{{ iface.if_name }}"
+/configure service system bgp evpn ingress-replication-bum-label-block "EVPN_ING_BUM_LB"
+/configure router "Base" mpls-labels reserved-label-block "EVPN_ING_BUM_LB" start-label 24000
+/configure router "Base" mpls-labels reserved-label-block "EVPN_ING_BUM_LB" end-label 25000
+{% endif %}
+{% endfor %}
+{% endif %}

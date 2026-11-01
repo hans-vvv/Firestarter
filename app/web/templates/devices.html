@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Devices{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h1 class="page-title mb-0">Devices</h1>
+
+  <div class="d-flex align-items-center gap-3">
+    <div id="generate-spinner" class="htmx-indicator text-muted">
+      <span class="spinner-border spinner-border-sm me-1"></span>Generating...
+    </div>
+    <button class="btn btn-firestarter rounded-pill px-4"
+            hx-post="{{ url_for('devices.generate') }}"
+            hx-target="#generate-result"
+            hx-swap="innerHTML"
+            hx-indicator="#generate-spinner">
+      <i class="bi bi-gear me-2"></i>Generate Configs
+    </button>
+  </div>
+</div>
+
+<!-- Generate result panel -->
+<div id="generate-result" class="mb-4"></div>
+
+<!-- Filters — form reset clears all inputs; hx-trigger="reset" sends an empty GET -->
+<form id="filter-form"
+      class="d-flex gap-2 mb-3 flex-wrap"
+      hx-get="{{ url_for('devices.rows') }}"
+      hx-target="#device-table-body"
+      hx-trigger="reset">
+
+  <input name="hostname"
+         type="search"
+         class="form-control form-control-sm"
+         style="max-width:240px"
+         placeholder="Filter hostname…"
+         hx-get="{{ url_for('devices.rows') }}"
+         hx-target="#device-table-body"
+         hx-trigger="input changed delay:200ms"
+         hx-include="#filter-form">
+
+  <select name="role" class="form-select form-select-sm" style="max-width:180px"
+          hx-get="{{ url_for('devices.rows') }}"
+          hx-target="#device-table-body"
+          hx-trigger="change"
+          hx-include="#filter-form">
+    <option value="">All roles</option>
+    {% for role in devices | map(attribute='role') | select | unique | sort %}
+    <option>{{ role }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="site" class="form-select form-select-sm" style="max-width:180px"
+          hx-get="{{ url_for('devices.rows') }}"
+          hx-target="#device-table-body"
+          hx-trigger="change"
+          hx-include="#filter-form">
+    <option value="">All sites</option>
+    {% for site in devices | map(attribute='site') | select | unique | sort %}
+    <option>{{ site }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="model" class="form-select form-select-sm" style="max-width:200px"
+          hx-get="{{ url_for('devices.rows') }}"
+          hx-target="#device-table-body"
+          hx-trigger="change"
+          hx-include="#filter-form">
+    <option value="">All models</option>
+    {% for model in devices | map(attribute='model_name') | select | unique | sort %}
+    <option>{{ model }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="status" class="form-select form-select-sm" style="max-width:160px"
+          hx-get="{{ url_for('devices.rows') }}"
+          hx-target="#device-table-body"
+          hx-trigger="change"
+          hx-include="#filter-form">
+    <option value="">All statuses</option>
+    {% for status in devices | map(attribute='status') | select | unique | sort %}
+    <option>{{ status }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="reset" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+    <i class="bi bi-x me-1"></i>Clear
+  </button>
+
+  <span id="filter-count" class="text-muted small align-self-center ms-1"></span>
+</form>
+
+<!-- Two-column layout: table left, config panel right -->
+<div class="row g-4">
+
+  <!-- Device table -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover table-striped mb-0" id="device-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Hostname</th>
+              <th>Role</th>
+              <th>Site</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="device-table-body">
+            {% include "partials/device_rows.html" %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config panel — sticky so it stays visible while scrolling the table -->
+  <div class="col-lg-6" id="config-col">
+    <div class="sticky-top" style="top: 5rem">
+      <div id="config-spinner" class="htmx-indicator text-muted mb-2">
+        <span class="spinner-border spinner-border-sm me-2"></span>Loading config...
+      </div>
+      <div id="config-panel">
+        <div class="card border-0 shadow-sm p-4 text-center text-muted">
+          <i class="bi bi-arrow-left me-2"></i>Select a device to see its configuration
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+

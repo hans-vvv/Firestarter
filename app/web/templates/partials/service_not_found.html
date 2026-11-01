@@ -1,0 +1,16 @@
+{#
+  Inline 'not found' partial rendered into #editor-panel when a slug does not
+  resolve to a definition file on disk.
+#}
+<div class="card border-0 shadow-sm mt-4" id="service-editor">
+  <div class="card-body d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2 text-warning-emphasis">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>No service definition found for <code>/services/{{ slug }}</code>.</span>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill"
+            onclick="document.getElementById('editor-panel').innerHTML=''">
+      <i class="bi bi-x"></i> Close
+    </button>
+  </div>
+</div>

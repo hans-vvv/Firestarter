@@ -1,0 +1,268 @@
+{# Pre-compliance refresh steps, when any were requested. Rendered above the
+   results because they describe what the comparison below was run against. #}
+{% if tasks %}
+<div class="mb-3">
+  {% for task in tasks %}
+  <div class="alert {{ 'alert-success' if task.ok else 'alert-warning' }} py-2 px-3 mb-2 d-flex align-items-center">
+    <i class="bi {{ 'bi-check-circle' if task.ok else 'bi-exclamation-triangle' }} me-2"></i>
+    <span><strong>{{ task.name }}</strong> — {{ task.detail }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Summary badges -->
+<div class="d-flex gap-3 mb-3 align-items-center">
+  <span class="badge badge-compliant fs-6 px-3 py-2">
+    {{ summary.compliant_count }} compliant
+  </span>
+  <span class="badge badge-noncompliant fs-6 px-3 py-2">
+    {{ summary.non_compliant_count }} non-compliant
+  </span>
+  {% if summary.failed_render %}
+  <span class="badge bg-danger fs-6 px-3 py-2">
+    {{ summary.failed_render | length }} render error
+  </span>
+  {% endif %}
+  {% if summary.failed_live %}
+  <span class="badge bg-danger fs-6 px-3 py-2">
+    {{ summary.failed_live | length }} live error
+  </span>
+  {% endif %}
+  {% if summary.failed_fetch %}
+  <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+    {{ summary.failed_fetch | length }} fetch failed
+  </span>
+  {% endif %}
+  {# Skipped devices (present on only one side — typically not-yet-active devices
+     with no live backup) are intentionally not surfaced here. #}
+
+  <!-- Download the detailed text report for this run -->
+  <a href="{{ url_for('compliance.report') }}"
+     class="btn btn-outline-secondary btn-sm rounded-pill px-3 ms-auto"
+     download>
+    <i class="bi bi-download me-1"></i>Download report
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <input id="cr-filter-hostname"
+         type="search"
+         class="form-control form-control-sm"
+         style="max-width:240px"
+         placeholder="Filter hostname…">
+
+  <select id="cr-filter-status" class="form-select form-select-sm" style="max-width:180px">
+    <option value="">All statuses</option>
+    <option value="compliant">Compliant</option>
+    <option value="non-compliant">Non-compliant</option>
+    {% if summary.failed_render %}
+    <option value="render-error">Render error</option>
+    {% endif %}
+    {% if summary.failed_live %}
+    <option value="live-error">Live error</option>
+    {% endif %}
+    {% if summary.failed_fetch %}
+    <option value="fetch-failed">Fetch failed</option>
+    {% endif %}
+  </select>
+
+  <button id="cr-filter-clear"
+          class="btn btn-outline-secondary btn-sm rounded-pill px-3"
+          style="display:none">
+    <i class="bi bi-x me-1"></i>Clear
+  </button>
+
+  <span id="cr-filter-count" class="text-muted small align-self-center ms-1"></span>
+</div>
+
+<!-- Results table -->
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table mb-0" id="compliance-table">
+      <thead>
+        <tr>
+          <th style="width:2rem"></th>
+          <th>Hostname</th>
+          <th>Status</th>
+          <th>Missing from device</th>
+          <th>Unexpected on device</th>
+          <th>Ignored (R/L)</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        {# Non-compliant first (compliant=false sorts ahead of true), then by
+           hostname within each group. #}
+        {% for hostname, result in summary.results.items() | sort(attribute='1.compliant,0') %}
+
+        {# ── Summary row ── #}
+        <tr class="{% if loop.index % 2 == 1 %}row-stripe{% endif %}"
+            data-bs-toggle="collapse"
+            data-bs-target="#detail-{{ loop.index }}"
+            data-hostname="{{ hostname | lower }}"
+            data-status="{{ 'compliant' if result.compliant else 'non-compliant' }}"
+            style="cursor:pointer">
+          <td class="text-muted">
+            <i class="bi bi-chevron-right collapse-icon" id="icon-{{ loop.index }}"></i>
+          </td>
+          <td class="fw-medium">{{ hostname }}</td>
+          <td>
+            {% if result.compliant %}
+            <span class="badge badge-compliant">Compliant</span>
+            {% else %}
+            <span class="badge badge-noncompliant">Non-compliant</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if result.only_in_rendered %}
+            <small class="text-dark">{{ result.only_in_rendered | length }} lines</small>
+            {% else %}
+            <small class="text-muted">—</small>
+            {% endif %}
+          </td>
+          <td>
+            {% if result.only_in_live %}
+            <small class="text-dark">{{ result.only_in_live | length }} lines</small>
+            {% else %}
+            <small class="text-muted">—</small>
+            {% endif %}
+          </td>
+          <td>
+            <small class="text-muted">
+              {{ result.ignored_rendered }}/{{ result.ignored_live }}
+            </small>
+          </td>
+        </tr>
+
+        {# ── Detail row — excluded from filtering, always follows its summary row ── #}
+        <tr class="collapse" id="detail-{{ loop.index }}">
+          <td colspan="6" class="p-0">
+            <div class="p-3 bg-light border-top border-bottom">
+
+              {% if result.compliant %}
+              <p class="text-success mb-0">
+                <i class="bi bi-check-circle me-1"></i>
+                No drift detected — rendered and live configs match.
+              </p>
+
+              {% else %}
+
+                {% if result.only_in_rendered %}
+                <p class="fw-medium text-dark mb-1">
+                  <i class="bi bi-dash-circle me-1"></i>
+                  Missing from device
+                  <small class="text-muted fw-normal">(in rendered, not on device)</small>
+                </p>
+                <pre class="config-block mb-3">{% for line in result.only_in_rendered | sort %}- {{ line }}
+{% endfor %}</pre>
+                {% endif %}
+
+                {% if result.only_in_live %}
+                <p class="fw-medium text-dark mb-1">
+                  <i class="bi bi-plus-circle me-1"></i>
+                  Unexpected on device
+                  <small class="text-muted fw-normal">(on device, not in rendered)</small>
+                </p>
+                <pre class="config-block">{% for line in result.only_in_live | sort %}+ {{ line }}
+{% endfor %}</pre>
+                {% endif %}
+
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+
+        {% endfor %}
+
+        {% for hostname in summary.failed_render %}
+        <tr class="table-danger"
+            data-hostname="{{ hostname | lower }}"
+            data-status="render-error">
+          <td></td>
+          <td class="fw-medium">{{ hostname }}</td>
+          <td><span class="badge bg-danger">Render error</span></td>
+          <td>—</td><td>—</td><td>—</td>
+        </tr>
+        {% endfor %}
+
+        {% for hostname in summary.failed_live %}
+        <tr class="table-danger"
+            data-hostname="{{ hostname | lower }}"
+            data-status="live-error">
+          <td></td>
+          <td class="fw-medium">{{ hostname }}</td>
+          <td><span class="badge bg-danger">Live error</span></td>
+          <td>—</td><td>—</td><td>—</td>
+        </tr>
+        {% endfor %}
+
+        {% for hostname in summary.failed_fetch %}
+        <tr class="table-warning"
+            data-hostname="{{ hostname | lower }}"
+            data-status="fetch-failed">
+          <td></td>
+          <td class="fw-medium">{{ hostname }}</td>
+          <td><span class="badge bg-warning text-dark">Fetch failed</span></td>
+          <td>—</td><td>—</td><td>—</td>
+        </tr>
+        {% endfor %}
+
+        {# Skipped devices are intentionally omitted from the table — see the note
+           by the summary badges. #}
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Only filter summary rows (those with data-hostname); detail rows follow automatically.
+  const rows     = Array.from(document.querySelectorAll('#compliance-table tbody tr[data-hostname]'));
+  const inHost   = document.getElementById('cr-filter-hostname');
+  const inStatus = document.getElementById('cr-filter-status');
+  const btnClear = document.getElementById('cr-filter-clear');
+  const spanCnt  = document.getElementById('cr-filter-count');
+  const total    = rows.length;
+
+  function applyFilters() {
+    const hostname = inHost.value.toLowerCase().trim();
+    const status   = inStatus.value;
+
+    let visible = 0;
+    rows.forEach(row => {
+      const match =
+        (!hostname || row.dataset.hostname.includes(hostname)) &&
+        (!status   || row.dataset.status === status);
+
+      // Hide/show the summary row.
+      row.style.display = match ? '' : 'none';
+
+      // Keep the detail row in sync — find it by the collapse target.
+      const target = row.getAttribute('data-bs-target');
+      if (target) {
+        const detail = document.querySelector(target);
+        if (detail) detail.style.display = match ? '' : 'none';
+      }
+
+      if (match) visible++;
+    });
+
+    const isFiltered = hostname || status;
+    btnClear.style.display = isFiltered ? '' : 'none';
+    spanCnt.textContent    = isFiltered ? `${visible} of ${total}` : '';
+  }
+
+  function clearFilters() {
+    inHost.value   = '';
+    inStatus.value = '';
+    applyFilters();
+  }
+
+  inHost.addEventListener('input',   applyFilters);
+  inStatus.addEventListener('change', applyFilters);
+  btnClear.addEventListener('click',  clearFilters);
+})();
+</script>

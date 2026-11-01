@@ -1,0 +1,65 @@
+{#
+  htmx partial — the remediation spec file list + create form. Swapped (outerHTML)
+  on this same div after create / delete so the list, any flash, and the cleared
+  input all refresh together.
+  Variables: files, placeholder, can_write, error?, created?, deleted?
+#}
+<div id="files-remediation">
+
+  {% if error %}
+  <div class="alert alert-danger d-flex align-items-start gap-2 py-2">
+    <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+  {% if created %}
+  <div class="alert alert-success py-2"><i class="bi bi-check-circle-fill me-1"></i>
+    Created <code>{{ created }}</code>.</div>
+  {% endif %}
+  {% if deleted %}
+  <div class="alert alert-success py-2"><i class="bi bi-check-circle-fill me-1"></i>
+    Deleted <code>{{ deleted }}</code>.</div>
+  {% endif %}
+
+  <ul class="list-group list-group-flush mb-3">
+    {% for f in files %}
+    <li class="list-group-item d-flex align-items-center justify-content-between px-0">
+      <button type="button"
+              class="btn btn-link p-0 text-decoration-none font-monospace"
+              hx-get="{{ url_for('remediations.editor', filename=f) }}"
+              hx-target="#editor-panel"
+              hx-swap="innerHTML">
+        <i class="bi bi-file-earmark-text me-1"></i>{{ f }}
+      </button>
+      {% if can_write %}
+      <button type="button"
+              class="btn btn-sm btn-outline-danger rounded-pill"
+              hx-post="{{ url_for('remediations.delete', filename=f) }}"
+              hx-target="#files-remediation"
+              hx-swap="outerHTML"
+              hx-confirm="Delete {{ f }}? This cannot be undone.">
+        <i class="bi bi-trash"></i>
+      </button>
+      {% endif %}
+    </li>
+    {% else %}
+    <li class="list-group-item text-muted fst-italic px-0">No specs yet.</li>
+    {% endfor %}
+  </ul>
+
+  {% if can_write %}
+  <form class="d-flex gap-2"
+        hx-post="{{ url_for('remediations.create') }}"
+        hx-target="#files-remediation"
+        hx-swap="outerHTML">
+    <input type="text" name="filename"
+           class="form-control form-control-sm font-monospace"
+           placeholder="{{ placeholder }}"
+           spellcheck="false" autocomplete="off">
+    <button type="submit" class="btn btn-sm btn-firestarter rounded-pill px-3 text-nowrap">
+      <i class="bi bi-plus-lg me-1"></i>New
+    </button>
+  </form>
+  {% endif %}
+
+</div>

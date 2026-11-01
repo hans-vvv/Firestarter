@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Compliance{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Compliance</h1>
+
+<div class="card border-0 shadow-sm p-4 mb-4" style="max-width: 560px">
+  <form id="compliance-form"
+        hx-post="{{ url_for('compliance.run') }}"
+        hx-target="#compliance-results"
+        hx-swap="innerHTML"
+        hx-indicator="#compliance-spinner">
+
+    <p class="text-muted small mb-3">
+      Compares rendered configuration against the most recent backup run.
+      Tick a box below to refresh the live side first.
+    </p>
+
+    {% if can_write %}
+    <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox"
+             id="rebuild_inventory" name="rebuild_inventory" checked>
+      <label class="form-check-label" for="rebuild_inventory">
+        Rebuild Nornir inventory
+        <small class="text-muted d-block">
+          Regenerates the device list from the topology database. No credentials needed.
+        </small>
+      </label>
+    </div>
+
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox"
+             id="fetch_backups" name="fetch_backups" checked>
+      <label class="form-check-label" for="fetch_backups">
+        Fetch backups from simulated devices
+        <small class="text-muted d-block">
+          Renders every device, applies the drift file and stores the result as the
+          live side. No real device is contacted and no credentials are needed.
+        </small>
+      </label>
+    </div>
+    {% else %}
+    <p class="text-muted small fst-italic mb-3">
+      Refreshing the live side requires the rw or admin role.
+    </p>
+    {% endif %}
+
+    <button type="submit" class="btn btn-firestarter rounded-pill px-4">
+      <i class="bi bi-shield-check me-2"></i>Run Compliance
+    </button>
+  </form>
+</div>
+
+<div id="compliance-spinner" class="htmx-indicator text-muted mb-3">
+  <span class="spinner-border spinner-border-sm me-2"></span>Running — rendering and comparing every device…
+</div>
+
+<div id="compliance-results"></div>
+
+{# ── Remediation ──────────────────────────────────────────────────────────
+   A second lens on the same run: the allow-listed missing lines that can be
+   pushed back to devices (ADR 0004). Loaded on demand — it reads the cached
+   compliance run, so run a check first. #}
+<hr class="my-4">
+<h2 class="h4 mb-3">Remediation</h2>
+
+<div class="card border-0 shadow-sm p-4 mb-4" style="max-width: 560px">
+  <p class="text-muted small mb-3">
+    Shows the missing-intended lines each device's role spec allow-lists, from the
+    most recent run above. Reviewing is open to all; pushing is admin-only.
+  </p>
+  <button class="btn btn-firestarter rounded-pill px-4"
+          hx-get="{{ url_for('compliance.remediation') }}"
+          hx-target="#remediation-results"
+          hx-swap="innerHTML"
+          hx-indicator="#remediation-spinner">
+    <i class="bi bi-wrench me-2"></i>Show remediation candidates
+  </button>
+</div>
+
+<div id="remediation-spinner" class="htmx-indicator text-muted mb-3">
+  <span class="spinner-border spinner-border-sm me-2"></span>Projecting candidates…
+</div>
+
+<div id="remediation-results"></div>
+
+{% if is_admin %}
+<div class="modal fade" id="remediateCredsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Device credentials</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small">
+          Push to device is disabled in this demo — nothing is sent to a device and
+          credentials are not stored.
+        </p>
+        <div class="mb-3">
+          <label for="remediate_modal_username" class="form-label">Username</label>
+          <input type="text" class="form-control" id="remediate_modal_username" autocomplete="off">
+        </div>
+        <div class="mb-1">
+          <label for="remediate_modal_password" class="form-label">Password</label>
+          <input type="password" class="form-control" id="remediate_modal_password" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger rounded-pill" id="remediate-creds-continue">Remediate</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{# Must be `scripts`, not `content`: base.html renders the content block before
+   it loads bootstrap and htmx, so anything here that touches either of them
+   would run against undefined globals. #}
+{% block scripts %}
+{% if is_admin %}
+<script>
+  // Remediation push: intercept any .remediate-form submit (the forms are inserted
+  // by htmx when the candidate list loads, so listeners are delegated on body and
+  // filtered by class), collect credentials in the modal, then issue the request.
+  // Creds are written into the specific form that triggered — never shared IDs —
+  // and cleared as soon as the request is on the wire.
+  (function () {
+    const modalEl = document.getElementById('remediateCredsModal');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+    let pendingForm = null, pendingIssue = null;
+
+    function isRemediateForm(elt) {
+      return elt && elt.classList && elt.classList.contains('remediate-form');
+    }
+
+    document.body.addEventListener('htmx:confirm', function (evt) {
+      if (!isRemediateForm(evt.detail.elt)) return;
+      evt.preventDefault();
+      // Batch push hits every eligible pe device at once — gate it behind an
+      // explicit "are you sure?" before even collecting credentials. Cancel ==
+      // no modal, no request. Per-device buttons skip this and go straight to creds.
+      if (evt.detail.elt.id === 'remediate-pe-form') {
+        const n = evt.detail.elt.dataset.count || 'all';
+        if (!window.confirm('Remediate ' + n + ' pe device(s)? This commits config to the live devices.')) {
+          return;
+        }
+      }
+      pendingForm = evt.detail.elt;
+      pendingIssue = evt.detail.issueRequest;
+      modal.show();
+    });
+
+    document.getElementById('remediate-creds-continue').addEventListener('click', function () {
+      if (pendingForm) {
+        pendingForm.querySelector('.rem-username').value =
+          document.getElementById('remediate_modal_username').value;
+        pendingForm.querySelector('.rem-password').value =
+          document.getElementById('remediate_modal_password').value;
+      }
+      modal.hide();
+      if (pendingIssue) { pendingIssue(true); pendingIssue = null; }
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function (evt) {
+      if (isRemediateForm(evt.detail.elt)) {
+        evt.detail.elt.querySelector('.rem-username').value = '';
+        evt.detail.elt.querySelector('.rem-password').value = '';
+      }
+      ['remediate_modal_username', 'remediate_modal_password']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}

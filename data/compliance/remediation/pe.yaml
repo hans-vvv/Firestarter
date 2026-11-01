@@ -1,0 +1,17 @@
+# pe.yaml — the pe1.*/pe2.* devices (Role.name "pe").
+conditions:
+  status: active
+add:
+  # Re-add missing RR sessions and customer SAPs exactly as rendered.
+  - match: startswith
+    value: 'configure router "Base" bgp neighbor'
+  - match: regex
+    value: 'configure service vpls "[^"]+" sap '
+  - match: regex
+    value: 'configure port \d+/\d+/c\d+/\d+ admin-state enable'
+delete:
+  # Static routes are never part of the intent on a PE.
+  - match: regex
+    value: 'configure router "Base" static-routes route (?P<prefix>\S+) route-type unicast next-hop (?P<nexthop>"[^"]+")'
+    remediation_commands:
+      - '/configure delete router "Base" static-routes route {prefix} route-type unicast next-hop {nexthop}'

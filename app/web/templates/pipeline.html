@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Run data pipeline{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-lg-8">
+
+    <h1 class="h3 mb-4">Run data pipeline</h1>
+
+    <div class="card mb-4">
+      <div class="card-header fw-medium">Pipeline</div>
+      <div class="card-body">
+        <p class="text-muted">
+          Runs the full ingestion and service-computation pipeline against the
+          input workbook currently on the server: validate Excel, seed reference
+          data, build the topology, then compute services. The database is never
+          wiped. The workbook, database and YAML definition files are archived as
+          a snapshot. Run this after replacing the Excel workbook or editing
+          service definitions.
+        </p>
+
+        {% if can_write %}
+        <button class="btn btn-primary"
+                hx-post="{{ url_for('pipeline.run') }}"
+                hx-target="#pipeline-result"
+                hx-swap="innerHTML"
+                hx-disabled-elt="this"
+                hx-indicator="#pipeline-spinner">
+          <i class="bi bi-play-fill me-1"></i> Run pipeline
+        </button>
+        <span id="pipeline-spinner" class="htmx-indicator ms-2 text-muted">
+          <span class="spinner-border spinner-border-sm" role="status"></span>
+          Running… this can take a while, please don't navigate away.
+        </span>
+        {% else %}
+        <p class="text-muted mb-0">
+          Running the pipeline requires the <strong>rw</strong> or
+          <strong>admin</strong> role.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="pipeline-result">
+      {% include "partials/pipeline_result.html" %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{# htmx partial — one device's latest backed-up (live) config. #}
+<div class="d-flex align-items-center justify-content-between mb-2">
+  <span class="fw-medium" style="color: var(--fs-slate)">
+    <i class="bi bi-hdd-network me-1"></i>{{ hostname }}
+    <small class="text-muted ms-1">latest backup</small>
+  </span>
+</div>
+<pre class="config-block"><code>{{ config }}</code></pre>

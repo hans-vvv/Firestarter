@@ -1,0 +1,157 @@
+/* Firestarter palette — neutral slate/teal, with red/green reserved for
+   semantic use (diffs, severities, compliance badges). */
+:root {
+  --fs-slate:  #243447;
+  --fs-teal:   #0F766E;
+  --fs-red:    #C0392B;
+  --fs-green:  #2E8B57;
+}
+
+/* Firestarter codename badge */
+.firestarter-badge {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fs-teal);
+  border: 1px solid var(--fs-teal);
+  border-radius: 4px;
+  padding: 1px 6px;
+  line-height: 1.6;
+  opacity: .85;
+}
+
+/* Navbar */
+.navbar {
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+.navbar .nav-link {
+  color: var(--fs-slate);
+  font-size: .9rem;
+  padding-right: 1rem;
+  padding-left:  1rem;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link.active {
+  color: var(--fs-teal);
+}
+
+/* Teal pill button */
+.btn-firestarter {
+  background-color: var(--fs-teal);
+  color: #fff;
+  font-size: .875rem;
+  font-weight: 500;
+}
+
+.btn-firestarter:hover {
+  background-color: #0B5F59;
+  color: #fff;
+}
+
+/* Page heading */
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--fs-slate);
+  margin-bottom: 1.5rem;
+}
+
+/* Summary cards */
+.summary-card {
+  border: none;
+  border-radius: .75rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.summary-card .card-title {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #6c757d;
+}
+
+.summary-card .card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--fs-slate);
+}
+
+/* Collapse chevron — rotates when row is expanded */
+.collapse-icon {
+  transition: transform 200ms ease;
+}
+[data-bs-toggle="collapse"][aria-expanded="true"] .collapse-icon,
+.collapse.show ~ tr .collapse-icon {
+  transform: rotate(90deg);
+}
+
+/* Tables */
+.table thead th {
+  color: var(--fs-slate);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+/* Config block */
+.config-block {
+  background: #1e2635;
+  color: #cdd6f4;
+  border-radius: .5rem;
+  font-size: .8rem;
+  padding: 1.25rem;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Migration snippet diff — uses red/green over the dark config-block. */
+.snippet-label-remove { color: var(--fs-red);   font-weight: 600; font-size: .8rem; }
+.snippet-label-add    { color: var(--fs-green); font-weight: 600; font-size: .8rem; }
+.snippet-block-remove { color: #ff8a85; }   /* lighter red — readable on dark navy */
+.snippet-block-add    { color: #7be08c; }   /* lighter green — readable on dark navy */
+
+/* htmx loading indicator */
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+}
+
+/* Compliance badges */
+.badge-compliant    { background-color: var(--fs-green); }
+.badge-noncompliant { background-color: #b03030; }   /* muted red, less harsh than brand red */
+
+/* Problem row — replaces Bootstrap table-danger (which gives pink).
+   Target td/th directly because Bootstrap 5 paints table rows via
+   box-shadow on cells, not background-color on the tr. */
+.row-problem > td,
+.row-problem > th {
+  background-color: rgba(176, 48, 48, 0.07) !important;
+}
+
+/* Manual stripe for tables with hidden collapse rows (Bootstrap's
+   nth-of-type counts those rows, breaking the pattern).
+   Applied via loop.index in Jinja on summary rows only. */
+.row-stripe > td,
+.row-stripe > th {
+  background-color: rgba(0, 0, 0, .04);
+}
+
+/* Finding severity */
+.severity-HIGH   { color: var(--fs-red);  font-weight: 600; }
+.severity-MEDIUM { color: #fd7e14; font-weight: 600; }
+.severity-LOW    { color: #ffc107; }
+.severity-INFO   { color: #6c757d; }

@@ -1,0 +1,52 @@
+{% if evpn_vpls is defined %}
+
+{% set loop = namespace(system_ip=None) %}
+{% for iface in interfaces if iface.render_type == "skip" %}
+{% if iface.name == "Loopback0" %}
+{% for ip_address in iface.iface_ip_addresses %}
+{% set loop.system_ip = ip_address %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{# ── Test if the PE is paired for A/A multihoming ── #}
+{% set ns = namespace(count=0) %}
+{% if evpn_esi is defined %}
+{% for iface in evpn_esi.variant.default.interfaces %}
+{% if (iface.esi | string).isdigit() %}
+{% set ns.count = ns.count + 1 %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% set system_ip = loop.system_ip.split('/')[0] if loop.system_ip else None %}
+
+{% for variant_name, variant_data in evpn_vpls.variant.items() %}
+{% for vpls_name, data in variant_data.items() %}
+{% set service_id = data.vpls_name.split("-")[-1] %}
+
+/configure service vpls "{{ data.vpls_name }}" admin-state enable
+/configure service vpls "{{ data.vpls_name }}" service-id {{ service_id }}
+/configure service vpls "{{ data.vpls_name }}" customer "1"
+/configure service vpls "{{ data.vpls_name }}" bgp 1 route-distinguisher "{{ system_ip }}:{{ service_id }}"
+{% if data.bgp_route_target_prefix is not none %}
+/configure service vpls "{{ data.vpls_name }}" bgp 1 route-target export "target:{{ data.bgp_route_target_prefix }}:{{ service_id }}"
+/configure service vpls "{{ data.vpls_name }}" bgp 1 route-target import "target:{{ data.bgp_route_target_prefix }}:{{ service_id }}"
+{% endif %}
+{% if data.routed_vpls %}
+/configure service vpls "{{ data.vpls_name }}" routed-vpls
+{% endif %}
+
+/configure service vpls "{{ data.vpls_name }}" bgp-evpn evi {{ data.evi_id }}
+/configure service vpls "{{ data.vpls_name }}" bgp-evpn mpls 1 admin-state enable
+{% if ns.count > 0 %}
+/configure service vpls "{{ data.vpls_name }}" bgp-evpn mpls 1 ingress-replication-bum-label true
+{% endif %}
+/configure service vpls "{{ data.vpls_name }}" bgp-evpn mpls 1 auto-bind-tunnel resolution any
+{% for iface in data.interfaces | sort(attribute='iface_name') %}
+/configure service vpls "{{ data.vpls_name }}" sap {{ iface.iface_name }}:{{ data.s_vlan }} admin-state enable
+{% endfor %}
+
+{% endfor %}
+{% endfor %}
+{% endif %}

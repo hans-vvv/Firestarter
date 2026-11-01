@@ -1,0 +1,14 @@
+# base.yaml — remediation rules applied to every device, whatever its role.
+# Only active devices are ever remediated; a role file may tighten this further.
+conditions:
+  status: active
+add:
+  # Descriptions are cosmetic and safe to push back as rendered.
+  - match: regex
+    value: 'configure .* description .*'
+delete:
+  # Local accounts the renderer never produced have no business on a router.
+  - match: regex
+    value: 'configure system security user-params local-user user (?P<user>"[^"]+") '
+    remediation_commands:
+      - '/configure delete system security user-params local-user user {user}'

@@ -1,0 +1,33 @@
+# Firestarter demo with Docker Compose.
+#
+#   docker compose up -d --build   build from this checkout and start
+#   docker compose logs -f         watch the first start build the demo
+#   docker compose down            stop (the data volume is kept)
+#   docker compose down -v         stop AND delete the data: next start is a fresh demo
+#
+# Open http://<host>:8080 and log in as admin / changeme
+# (or the FIRESTARTER_ADMIN_PASSWORD you set before the FIRST start).
+services:
+  firestarter:
+    build: .
+    image: firestarter-demo:local
+    ports:
+      - "${FIRESTARTER_PORT:-8080}:8080"
+    environment:
+      FIRESTARTER_ADMIN_PASSWORD: "${FIRESTARTER_ADMIN_PASSWORD:-changeme}"
+      SECRET_KEY: "${SECRET_KEY:-firestarter-demo-not-secret}"
+    volumes:
+      - firestarter-data:/data
+      # Optional: start from a ready-made data bundle instead of building it.
+      # Unzip firestarter-data-demo-*.zip into ./bundle and uncomment:
+      # - ./bundle:/bundle:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/login', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  firestarter-data:

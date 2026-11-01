@@ -1,0 +1,34 @@
+# VPRN "CUSTOMER-A" — L3 VPN exposed to every access switch on VLAN 20.
+#
+# The routed VPLS that carries VLAN 20 is derived by the VPRN handler
+# (CUSTOMER-A-20 -> VPLS CUSTOMER-A-200, declared in evpn_vpls_def.yaml).
+# subnet_info.ce_mgmt marks this VPRN as the one whose per-site /28 also
+# provides the sticky management address of each access switch.
+service: vprn
+tenant: demo
+variant: customer_a
+
+selectors:
+  devices:
+    vprn:
+      match:
+        labels:
+          tenant: demo
+        role:
+          include: ["pe"]
+
+parameters:
+  
+  vprns:
+    - name: CUSTOMER-A-20
+      rt_import: ["65000:20"]
+      rt_export: ["65000:20"]
+      use_policy: false
+      subnet_info:
+        prefix_pool_name: delegated_pool_ce_mgmt_demo
+        prefixlen: 28
+        ce_mgmt: true
+
+features: {}
+
+interface_features: {}
